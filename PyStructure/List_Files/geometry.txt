@@ -1,0 +1,19 @@
+# column 1: name    
+# column 2: R.A. center [decimal degrees J2000]
+# column 3: Dec. center [decimal degrees J2000]
+# column 4: distance [Mpc]
+# column 5: uncertainty in distance
+# column 6: inclination [deg] (LEDA)
+# column 7: uncertainty in inclination
+# column 8: position angle [deg] (LEDA)
+# column 9: uncertainty in position angle
+# column 10: radius 25th magnitude isophote [arcmin]
+# column 11: uncertainty in radius 25th
+# column 12: ref for position angle
+# Attach comments with #
+# Distances and uncertainties from Brent Groves' NED querying program.
+# Inclinations and PA from Maria's compilation
+# Radius from Leda
+#ngc5194	    202.4696292	      47.1951722	 8.0	      0.2	20.0	NaN	172.0	NaN	3.88	0.05 T08
+NGC6946	    308.7180150	      60.1539150	 5.6	      0.6	33.0	NaN	243.0	NaN	5.74	0.05
+# 32.6 and 163
