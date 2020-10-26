@@ -5,11 +5,9 @@
 # Column 5: path to files
 # Column 6: extension, if 2D map provided
 # Column 7: extension err, if 2D map provided
-#12co21, 12CO2-1, K, _12co21.fits, /Users/Jakob/Desktop/PhD_prep/Project_I/Structure_Creation/data/  
+12co21, 12CO2-1, K, _12co21.fits, data/  
 #12co21_b, 12CO2-1, K, _12co21.fits, /Users/Jakob/Desktop/PhD_prep/Project_I/Structure_Creation/data/,  _12co21_ii.fits,  _12co21_ii_uc.fits
-12co21, 12CO21, K, _CO21.fits, /Users/Jakob/Desktop/PyStructure_School_2020/PyStructure/data/
-cii, CII, K, _CII.fits, /Users/Jakob/Desktop/PyStructure_School_2020/PyStructure/data/
-#12co10, 12CO1-0, K, _12co10.fits, /Users/Jakob/Desktop/PhD_prep/Project_I/Structure_Creation/data/
+12co10, 12CO1-0, K, _12co10.fits, data/
 #13co10, 13CO1-0, K, _13co10.fits, /Users/Jakob/Desktop/PhD_prep/Project_I/Structure_Creation/data/
 #12co10_rep, 12CO1-0, K, _12co10_repr.fits, /Users/Jakob/Desktop/PhD_prep/Project_I/Structure_Creation/data/
 

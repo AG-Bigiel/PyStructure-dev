@@ -13,14 +13,14 @@ script use for example:
     > plt.scatter(ra_samp, dec_samp, c = intensity, marker = "h")
 
 MODIFICATION HISTORY
-    -   v1.0.1 16-22 October: Conversion from IDL to Python
+    -   v1.0.1 16-22 October 2019: Conversion from IDL to Python
         Minor changes implemented
         ToDo:
             - now can only read in (z,x,y) cubes, but should be flexible to
               recognize (1,z,x,y) cubes as well
-            - not yet fully happy how geometry, band and cube files are read in
             
-    -
+    - v1.1.1 26 October 2020: More stable version. Several bugs fixed
+    
 """
 __author__ = "J. den Brok"
 __version__ = "v1.0.1"
@@ -50,7 +50,7 @@ from processing_spec import *
 #----------------------------------------------------------------------
 
 # <path to directory with the data files>
-data_dir = "/Users/Jakob/Desktop/PyStructure_School_2020/PyStructure/data/"
+data_dir = "data/"
 
 # <filename of geometry file>
 geom_file = "List_Files/geometry.txt"
@@ -59,18 +59,30 @@ band_file = "List_Files/band_list.txt"
 # <filename of cube file>
 cube_file = "List_Files/cube_list.txt"
 # <filename of overlay or mask> #should be stored in data_dir
-#overlay_file = "ngc5194_12co21.fits"
-overlay_file = "NGC6946_CII.fits"
+overlay_file = "_12co21.fits"
+
 # <Output Directory for Dictionaries>
 out_dic = "Output/"
-# Set the target resolution for all data in arcseconds
-target_res_as = 23.
+
+# Set the target resolution for all data in arcseconds (if resolution set to angular)
+target_res = 23.
 
 
-#!!!!!!!!!!!!!Advanced
+#!!!!!!!!!!!!!Advanced------------------------------------------
 NAXIS_shuff = 200
 CDELT_SHUFF = 4000.  #m/s
 
+"""
+angular: use target_res in as
+physical: convert target_res (in pc) to as
+natice: use the angular resolution of the overlay image
+"""
+resolution = 'angular'
+
+# Save the convolved cubes & bands
+save_fits = False
+
+#---------------------------------------------------------------
 
 
 #----------------------------------------------------------------------
@@ -184,15 +196,21 @@ def create_database(just_source=None, quiet=False):
     # MAKE SAMPLING POINTS FOR THIS TARGET
     #--------------------------------------------------------------------
 
-     #Generate sampling points using the EMPIRE HCN as a template and half-beam spacing.
+     #Generate sampling points using the overlay file provided as a template and half-beam spacing.
         
 
-        overlay_fname = data_dir+overlay_file
+        # check if overlay name given with or without the source name in it:
+        if this_source in overlay_file:
+            overlay_fname = data_dir+overlay_file
+        else:
+            overlay_fname = data_dir+this_source+overlay_file
+        
         
         if not path.exists(overlay_fname):
             run_success[ii]=False
             
-            print("[ERROR]\t No Overlay data found. Skipping "+this_source)
+            print("[ERROR]\t No Overlay data found. Skipping "+this_source+". Check path to overlay file.")
+            
             continue
 
 
@@ -207,7 +225,17 @@ def create_database(just_source=None, quiet=False):
         #mask = total(finite(hcn_cube),3) ge 1
         mask = np.sum(np.isfinite(ov_cube), axis = 0)>=1
         mask_hdr = twod_head(ov_hdr)
-
+        
+        if resolution == 'native':
+            target_res_as = np.max([ov_hdr['BMIN'], ov_hdr['BMAJ']]) * 3600
+        elif resolution == 'physical':
+            target_res_as = 3600 * 180/np.pi * 1e-6 * target_res_pc / glxy_data['dist_mpc'][ii]
+        elif resolution == 'angular':
+            target_res_as = target_res
+        else:
+            print('[ERROR]\t Resolution keyword has to be "native","angular" or "physical".')
+            
+        # Determine
         spacing = target_res_as / 3600. / 2.0
 
         samp_ra, samp_dec = make_sampling_points(
@@ -226,7 +254,7 @@ def create_database(just_source=None, quiet=False):
     # INITIIALIZE THE NEW STRUCTURE
     #--------------------------------------------------------------------
         n_pts = len(samp_ra)
-
+        
         # The following lines do this_data=replicate(empty_struct, 1)
 
         this_data = {}
@@ -261,7 +289,7 @@ def create_database(just_source=None, quiet=False):
         #---------------------------------------------------------------------
         # LOOP OVER MAPS, CONVOLVING AND SAMPLING
         #--------------------------------------------------------------------
-
+        
         for jj in range(n_bands):
             
             this_band_file = bands["band_dir"][jj] + this_source + bands["band_ext"][jj]
@@ -271,13 +299,21 @@ def create_database(just_source=None, quiet=False):
 
                 continue
 
-
+            if "/beam" in bands["band_unit"][jj]:
+                perbeam = True
+            else:
+                perbeam = False
             this_int = sample_at_res(in_data=this_band_file,
                                      ra_samp = samp_ra,
                                      dec_samp = samp_dec,
                                      target_res_as = target_res_as,
                                      target_hdr = ov_hdr,
-                                     show = False)
+                                     show = False,
+                                     line_name =bands["band_name"][jj],
+                                     galaxy =this_source,
+                                     path_save_fits = data_dir,
+                                     save_fits = save_fits,
+                                     perbeam = perbeam)
 
 
             this_tag_name = 'INT_VAL_' + bands["band_name"][jj].upper()
@@ -313,7 +349,8 @@ def create_database(just_source=None, quiet=False):
                                     ra_samp = samp_ra,
                                     dec_samp = samp_dec,
                                     target_res_as = target_res_as,
-                                    target_hdr = ov_hdr)
+                                    target_hdr = ov_hdr,
+                                    perbeam = perbeam)
             this_tag_name = 'INT_UC_'+bands["band_name"][jj].upper()
             if this_tag_name in this_data:
                 this_data[this_tag_name] = this_uc
@@ -340,12 +377,20 @@ def create_database(just_source=None, quiet=False):
             print('[INFO]\t Sampling at resolution band '+cubes["line_name"][jj]
                    +' for '+this_source)
             
-            
+            if "/beam" in cubes["line_unit"][jj]:
+                perbeam = True
+            else:
+                perbeam = False
             this_spec = sample_at_res(in_data = this_line_file,
                                       ra_samp = samp_ra,
                                       dec_samp = samp_dec,
                                       target_res_as = target_res_as,
-                                      target_hdr = ov_hdr)
+                                      target_hdr = ov_hdr,
+                                      line_name =cubes["line_name"][jj],
+                                      galaxy =this_source,
+                                      path_save_fits = data_dir,
+                                      save_fits = save_fits,
+                                      perbeam = perbeam)
 
 
 
@@ -405,7 +450,12 @@ def create_database(just_source=None, quiet=False):
                                          dec_samp = samp_dec,
                                          target_res_as = target_res_as,
                                          target_hdr = ov_hdr,
-                                         show = False)
+                                         show = False,
+                                         line_name =cubes["line_name"][jj],
+                                         galaxy =this_source,
+                                         path_save_fits = data_dir,
+                                         save_fits = save_fits,
+                                         perbeam = perbeam)
 
 
                 this_tag_name = 'INT_VAL_' + cubes["line_name"][jj].upper()
@@ -429,7 +479,8 @@ def create_database(just_source=None, quiet=False):
                                         ra_samp = samp_ra,
                                         dec_samp = samp_dec,
                                         target_res_as = target_res_as,
-                                        target_hdr = ov_hdr)
+                                        target_hdr = ov_hdr,
+                                        perbeam = perbeam)
                 this_tag_name = 'INT_UC_'+cubes["line_name"][jj].upper()
                 if this_tag_name in this_data:
                     this_data[this_tag_name] = this_uc
@@ -441,7 +492,15 @@ def create_database(just_source=None, quiet=False):
             print("[INFO]\t Done with line " + cubes["line_name"][jj])
 
         # Save the database
-        fname_dict = out_dic+this_source+"_data_struct_"+date_str+'.npy'
+        if resolution == 'native':
+            res_suffix = str(target_res_as).split('.')[0]+'.'+str(target_res_as).split('.')[1][0]+'as'
+        elif resolution == 'angular':
+            res_suffix = str(target_res_as).split('.')[0]+'as'
+        elif resolution == 'physical':
+            res_suffix = str(target_res_pc).split('.')[0]+'pc'
+            
+            
+        fname_dict = out_dic+this_source+"_data_struct_"+res_suffix+'_'+date_str+'.npy'
         fnames.append(fname_dict)
         np.save(fname_dict, this_data)
     #---------------------------------------------------------------------

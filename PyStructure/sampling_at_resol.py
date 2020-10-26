@@ -27,7 +27,13 @@ def sample_at_res(in_data,
                   target_hdr = None,
                   coverage = None,
                   rms = None,
-                  show = False):
+                  show = False,
+                  #advanced parameters
+                  line_name = "",
+                  galaxy = "",
+                  save_fits = False,
+                  path_save_fits = "",
+                  perbeam = False):
 
     """
     Function to sample the data and convolve
@@ -85,7 +91,8 @@ def sample_at_res(in_data,
     if current_bmaj < target_res_as/3600:
         data, hdr_out = conv_with_gauss(in_data= data, in_hdr = hdr,
                                               target_beam = target_res_as*np.array([1,1,0]),
-                                              quiet = True)
+                                              quiet = True,
+                                              perbeam = perbeam)
         
         #data_speccube = SpectralCube(data=data, wcs = WCS(hdr))
         #data_speccube.beam = radio_beam.Beam(major=current_bmaj*u.arcsec, minor=current_bmaj*u.arcsec, pa=0*u.deg)
@@ -117,6 +124,14 @@ def sample_at_res(in_data,
         
         print("")
         
+        # Save the convloved file as a fits file
+        if save_fits:
+            out_header = copy.copy(target_hdr)
+            out_header["BMAJ"]=target_res_as/3600
+            out_header["BMIN"]=target_res_as/3600
+            out_header["LINE"]=line_name
+            fits.writeto(path_save_fits+galaxy+'_'+str(line_name)+'_{}as.fits'.format(target_res_as), data=data_out, header=out_header, overwrite=True)
+            print("[INFO]\t Convolved Fits file has been saved.")
         
     else:
         print("[INFO]\t No alignment because no target header supplied.")
