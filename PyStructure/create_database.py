@@ -18,9 +18,10 @@ MODIFICATION HISTORY
         ToDo:
             - now can only read in (z,x,y) cubes, but should be flexible to
               recognize (1,z,x,y) cubes as well
-            
-    - v1.1.1 26 October 2020: More stable version. Several bugs fixed
-    
+
+    - v1.1.1 26 October 2020: More stable version. Several bugs fixed.
+            - Used by whole Bonn group
+
 """
 __author__ = "J. den Brok"
 __version__ = "v1.0.1"
@@ -139,7 +140,7 @@ def create_database(just_source=None, quiet=False):
     band_columns = ["band_name","band_desc", "band_unit",
                     "band_ext", "band_dir","band_uc" ]
     bands = pd.read_csv(band_file, names = band_columns, sep='[\s,]{2,20}', comment="#")
-    
+
     n_bands = len(bands["band_name"])
     for ii in range(n_bands):
         empty_structure = add_band_to_struct(struct=empty_structure,
@@ -161,7 +162,7 @@ def create_database(just_source=None, quiet=False):
                                          line=cubes["line_name"][ii],
                                          unit=cubes["line_unit"][ii],
                                          desc=cubes["line_desc"][ii])
-                                         
+
         # if we provide a cube for which we already have the 2D map, include it as a band
         if not cubes["band_ext"].isnull()[ii]:
             empty_structure = add_band_to_struct(struct=empty_structure,
@@ -175,11 +176,11 @@ def create_database(just_source=None, quiet=False):
     #-----------------------------------------------------------------
     # LOOP OVER SOURCES
     #-----------------------------------------------------------------
-    
+
     #additional parameters
     run_success = [True]*n_sources #keep track if run succesfull for each galaxy
     fnames=[]   #filename save for galaxy
-    
+
     for ii in range(n_sources):
 
         this_source = glxy_data["galaxy"][ii]
@@ -197,25 +198,25 @@ def create_database(just_source=None, quiet=False):
     #--------------------------------------------------------------------
 
      #Generate sampling points using the overlay file provided as a template and half-beam spacing.
-        
+
 
         # check if overlay name given with or without the source name in it:
         if this_source in overlay_file:
             overlay_fname = data_dir+overlay_file
         else:
             overlay_fname = data_dir+this_source+overlay_file
-        
-        
+
+
         if not path.exists(overlay_fname):
             run_success[ii]=False
-            
+
             print("[ERROR]\t No Overlay data found. Skipping "+this_source+". Check path to overlay file.")
-            
+
             continue
 
 
         ov_cube,ov_hdr = fits.getdata(overlay_fname, header = True)
-        
+
         #check, that cube is not 4D
         if ov_hdr["NAXIS"]==4:
             run_success[ii]=False
@@ -225,7 +226,7 @@ def create_database(just_source=None, quiet=False):
         #mask = total(finite(hcn_cube),3) ge 1
         mask = np.sum(np.isfinite(ov_cube), axis = 0)>=1
         mask_hdr = twod_head(ov_hdr)
-        
+
         if resolution == 'native':
             target_res_as = np.max([ov_hdr['BMIN'], ov_hdr['BMAJ']]) * 3600
         elif resolution == 'physical':
@@ -234,7 +235,7 @@ def create_database(just_source=None, quiet=False):
             target_res_as = target_res
         else:
             print('[ERROR]\t Resolution keyword has to be "native","angular" or "physical".')
-            
+
         # Determine
         spacing = target_res_as / 3600. / 2.0
 
@@ -254,7 +255,7 @@ def create_database(just_source=None, quiet=False):
     # INITIIALIZE THE NEW STRUCTURE
     #--------------------------------------------------------------------
         n_pts = len(samp_ra)
-        
+
         # The following lines do this_data=replicate(empty_struct, 1)
 
         this_data = {}
@@ -289,9 +290,9 @@ def create_database(just_source=None, quiet=False):
         #---------------------------------------------------------------------
         # LOOP OVER MAPS, CONVOLVING AND SAMPLING
         #--------------------------------------------------------------------
-        
+
         for jj in range(n_bands):
-            
+
             this_band_file = bands["band_dir"][jj] + this_source + bands["band_ext"][jj]
             if not path.exists(this_band_file):
                 print("[ERROR]\t Band "+bands["band_name"][jj] +" not found for "\
@@ -367,16 +368,16 @@ def create_database(just_source=None, quiet=False):
         for jj in range(n_cubes):
             this_line_file = cubes["line_dir"][jj] + this_source + cubes["line_ext"][jj]
 
-           
+
             if not path.exists(this_line_file):
-               
+
                 print("[ERROR]\t Line "+cubes["line_name"][jj]+" not found for "+
                       this_source)
 
                 continue
             print('[INFO]\t Sampling at resolution band '+cubes["line_name"][jj]
                    +' for '+this_source)
-            
+
             if "/beam" in cubes["line_unit"][jj]:
                 perbeam = True
             else:
@@ -428,13 +429,13 @@ def create_database(just_source=None, quiet=False):
                 print("[ERROR]\t  I had trouble matching tag "+this_tag_name+
                       " to the database.")
                 continue
-                
-                
+
+
             #------------------------------------------------------------------
             # Added: Check, if in addition to 3D cube, a customized 2D map is provided
-            
+
             if not cubes["band_ext"].isnull()[jj]:
-               
+
                 this_band_file = cubes["line_dir"][jj] + this_source + cubes["band_ext"][jj]
                 print("[INFO]\t For Cube "+cubes["line_name"][jj] +" a 2D map is provided.")
                 if not path.exists(this_band_file):
@@ -465,8 +466,8 @@ def create_database(just_source=None, quiet=False):
                     print("[ERROR]\t  I had trouble matching tag "+this_tag_name+
                           " to the database.")
                     continue
-                    
-                    
+
+
                 this_uc_file = cubes["line_dir"][jj] + this_source + str(cubes["band_uc"][jj])
                 if not path.exists(this_uc_file):
                     print("[WARNING]\t UC Band "+cubes["line_name"][jj]+" not found for "+
@@ -488,7 +489,7 @@ def create_database(just_source=None, quiet=False):
                     print("[ERROR]\t  I had trouble matching tag "+this_tag_name+
                       " to the database.")
                     continue
-                
+
             print("[INFO]\t Done with line " + cubes["line_name"][jj])
 
         # Save the database
@@ -498,8 +499,8 @@ def create_database(just_source=None, quiet=False):
             res_suffix = str(target_res_as).split('.')[0]+'as'
         elif resolution == 'physical':
             res_suffix = str(target_res_pc).split('.')[0]+'pc'
-            
-            
+
+
         fname_dict = out_dic+this_source+"_data_struct_"+res_suffix+'_'+date_str+'.npy'
         fnames.append(fname_dict)
         np.save(fname_dict, this_data)
@@ -510,7 +511,7 @@ def create_database(just_source=None, quiet=False):
         print("[INFO]\t Start processing Spectra.")
     process_spectra(glxy_data, cubes,fnames, [NAXIS_shuff, CDELT_SHUFF],run_success)
 
-    
+
     return run_success
 
 run_success = create_database()
