@@ -1,7 +1,7 @@
 # Astrionomy Group – Bigiel
 
 This repository stores all the relevant scripts and code used in our research
-group. It will constantly be updated, so *please keep track of changes*.
+group. It will constantly be updated, so **please keep track of changes**.
 
 ### Content:
 
@@ -11,4 +11,4 @@ group. It will constantly be updated, so *please keep track of changes*.
 
 * Jupyter Notebook Examples
 
-* Masking Scripts 
+* Additional Scripts
