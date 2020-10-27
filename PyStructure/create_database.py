@@ -76,7 +76,7 @@ CDELT_SHUFF = 4000.  #m/s
 """
 angular: use target_res in as
 physical: convert target_res (in pc) to as
-natice: use the angular resolution of the overlay image
+native: use the angular resolution of the overlay image
 """
 resolution = 'angular'
 
