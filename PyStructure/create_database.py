@@ -300,7 +300,7 @@ def create_database(just_source=None, quiet=False):
 
                 continue
 
-            if "/beam" in bands["band_unit"][jj]:
+            if "/beam" in bands["band_unit"][jj] or "/sr" in bands["band_unit"][jj] :
                 perbeam = True
             else:
                 perbeam = False
@@ -378,7 +378,7 @@ def create_database(just_source=None, quiet=False):
             print('[INFO]\t Sampling at resolution band '+cubes["line_name"][jj]
                    +' for '+this_source)
 
-            if "/beam" in cubes["line_unit"][jj]:
+            if "/beam" in cubes["line_unit"][jj] or "/sr" in bands["band_unit"][jj]:
                 perbeam = True
             else:
                 perbeam = False
