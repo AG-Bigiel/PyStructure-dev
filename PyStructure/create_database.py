@@ -407,7 +407,7 @@ def create_database(just_source=None, quiet=False):
 
             this_vaxis = make_axes(this_line_hdr, vonly = True)
             sz_this_spec = np.shape(this_spec)
-            n_chan = sz_this_spec[0]
+            n_chan = sz_this_spec[1]
 
             for kk in range(n_pts):
                 temp_spec = this_data[this_tag_name][kk]
