@@ -230,7 +230,7 @@ def create_database(just_source=None, quiet=False):
         if resolution == 'native':
             target_res_as = np.max([ov_hdr['BMIN'], ov_hdr['BMAJ']]) * 3600
         elif resolution == 'physical':
-            target_res_as = 3600 * 180/np.pi * 1e-6 * target_res_pc / glxy_data['dist_mpc'][ii]
+            target_res_as = 3600 * 180/np.pi * 1e-6 * target_res / glxy_data['dist_mpc'][ii]
         elif resolution == 'angular':
             target_res_as = target_res
         else:
@@ -498,7 +498,7 @@ def create_database(just_source=None, quiet=False):
         elif resolution == 'angular':
             res_suffix = str(target_res_as).split('.')[0]+'as'
         elif resolution == 'physical':
-            res_suffix = str(target_res_pc).split('.')[0]+'pc'
+            res_suffix = str(target_res).split('.')[0]+'pc'
 
 
         fname_dict = out_dic+this_source+"_data_struct_"+res_suffix+'_'+date_str+'.npy'
