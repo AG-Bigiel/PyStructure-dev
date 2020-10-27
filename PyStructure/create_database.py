@@ -60,7 +60,7 @@ band_file = "List_Files/band_list.txt"
 # <filename of cube file>
 cube_file = "List_Files/cube_list.txt"
 # <filename of overlay or mask> #should be stored in data_dir
-overlay_file = "ngc2845_12co21.fits"
+overlay_file = "_12co21.fits"
 
 # <Output Directory for Dictionaries>
 out_dic = "Output/"
