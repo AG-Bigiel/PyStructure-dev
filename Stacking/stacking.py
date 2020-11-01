@@ -253,12 +253,14 @@ def get_stack(galaxy,prior_lines,lines, dir_save, dir_data ='./../../data/Databa
             low_mask = np.array(prior > sn_low * rms, dtype = int)
 
             mask = mask & (np.roll(mask, 1) | np.roll(mask,-1))
+            #remove spikes
+            mask = np.array((mask + np.roll(mask, 1) + np.roll(mask, -1))>=3, dtype = int)
 
             #expand to cover all > 2sigma that have a 2-at-4sigma core
             for kk in range(10):
                 mask = np.array(((mask + np.roll(mask, 1) + np.roll(mask, -1)) >= 1), dtype = int)*low_mask
 
-            mask = np.array((mask + np.roll(mask, 1) + np.roll(mask, -1))>=1, dtype = int)
+
 
             prior_specs.append(stack[prior_line+"_spec_K"][:,j])
             masks.append(mask)
