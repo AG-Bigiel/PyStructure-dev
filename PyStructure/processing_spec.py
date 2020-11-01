@@ -58,13 +58,17 @@ def process_spectra(sources_data, lines_data,fname,shuff_axis, run_success,just_
 
         mask = mask & (np.roll(mask, 1,1) | np.roll(mask,-1,1))
 
-        #remove spikes:
+        #remove spikes along spectral axis:
+        mask = np.array((mask + np.roll(mask, 1, 1) + np.roll(mask, -1, 1))>=3, dtype = int)
+        low_mask = np.array((low_mask + np.roll(mask, 1, 1) + np.roll(low_mask, -1, 1))>=3, dtype = int)
+
+        #remove spikes along spatial axis:
         mask = np.array((mask + np.roll(mask, 1, 0) + np.roll(mask, -1, 0))>=3, dtype = int)
         low_mask = np.array((low_mask + np.roll(mask, 1, 0) + np.roll(low_mask, -1, 0))>=3, dtype = int)
 
         #expand to cover all > 2sigma that have a 2-at-4sigma core
         for kk in range(5):
-            mask = np.array(((mask + np.roll(mask, 1, 0) + np.roll(mask, -1, 0)) >= 1), dtype = int)*low_mask
+            mask = np.array(((mask + np.roll(mask, 1, 1) + np.roll(mask, -1, 1)) >= 1), dtype = int)*low_mask
 
 
 
