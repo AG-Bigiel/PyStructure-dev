@@ -158,7 +158,7 @@ def get_stack(galaxy,prior_lines,lines, dir_save, dir_data ='./../../data/Databa
 
         if do_smooth == False:
             if is_IDL:
-                vaxis = this_data[0]["SPEC_VCHAN0_SHUFF"+prior_lines[0]] + this_data[0]["SPEC_DELTAV_SHUFF"+prior_lines[0]] * np.arange(len(this_data[0]["SPEC_VAL_"+prior_lines[0]]))
+                vaxis = this_data[0]["SPEC_VCHAN0_SHUFF"+prior_lines[0]] + this_data[0]["SPEC_DELTAV_SHUFF"+prior_lines[0]] * np.arange(len(this_data[0]["SPEC_VAL_SHUFF"+prior_lines[0]]))
             else:
                 vaxis = this_data["SPEC_VCHAN0_SHUFF"+prior_lines[0]] + this_data["SPEC-DELTAV_SHUFF"+prior_lines[0]] * np.arange(len(this_data["SPEC_VAL_SHUFF"+prior_lines[0]][0]))
             co21_spec = shuffled_specs["SPEC_VAL_SHUFF"+prior_lines[0]]
