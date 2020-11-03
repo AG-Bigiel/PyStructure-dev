@@ -64,7 +64,7 @@ def deproject(ra, dec, galpos, vector = False,
     """
     np.seterr(divide='ignore', invalid='ignore')
 
-    
+
     if not gal is None:
         pa = np.deg2rad(gal["posang_deg"])
         inc = np.deg2rad(gal["incl_def"])
@@ -114,7 +114,6 @@ def deproject(ra, dec, galpos, vector = False,
     rgrid = np.sqrt(deproj_x**2 + deproj_y**2)
 
     # MAKE GRID OF ANGLE W.R.T. PA
-    tgrid = np.arctan(deproj_y/deproj_x)
-
+    tgrid = np.arctan2(deproj_y, deproj_x)
 
     return rgrid, tgrid
