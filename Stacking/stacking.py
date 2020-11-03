@@ -35,13 +35,13 @@ def get_stack(galaxy,prior_lines,lines, dir_save, dir_data ='./../../data/Databa
     # Direcory, where the
 
     if xtype is None:
-        xtype = input("Choose the stacking method (rad, sfr, co21, co10, PACS, sigtir, TIR_co10, TIR_co21): ")
+        xtype = input("Choose the stacking method (rad, sfr, 12co21, 12co10, PACS, sigtir, TIR_co10, TIR_co21): ")
 
         iter = 0
-        while xtype not in ["rad", "sfr", "co21","co10","PACS","sigtir", "TIR_co10", "TIR_co21"] and iter <2:
+        while xtype not in ["rad", "sfr", "12co21","12co10","PACS","sigtir", "TIR_co10", "TIR_co21"] and iter <2:
             print('"'+xtype+'" is an invalid input. Please try again.')
 
-            xtype = input("Choose the stacking method (rad, sfr, co21, co10, PACS, sigtir, TIR_co10, TIR_co21): ")
+            xtype = input("Choose the stacking method (rad, sfr, 12co21, 12co10, PACS, sigtir, TIR_co10, TIR_co21): ")
             iter +=1
 
         if iter == 2:

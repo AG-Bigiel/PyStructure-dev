@@ -7,12 +7,12 @@ import new_stack as new_stacks
 
 def stack_pix_by_x(struct, lines, xtype, x_vec ,xmin, xmax ,galaxy, binsize = None ,mask = None, median = "mean", out_struc_in = None):
 
-    
+
     # -------------------------------------------------------------------------
     #DEFINE THE FLAG DEPENDING ON THE STACKING METHOD
     # -------------------------------------------------------------------------
     flag = xtype
-    
+
     #HERE I HAVE TO ADD THE OTHER CASES DIFFERENT FROM RADIAL BINNING!
 
     #INITIALIZE OUTPUT
@@ -35,7 +35,7 @@ def stack_pix_by_x(struct, lines, xtype, x_vec ,xmin, xmax ,galaxy, binsize = No
 
     #First construct the logarithmic bins for xtype = sfr
 
-    if xtype in ['sfr',"co10","co21","PACS","sigtir","TIR_co21","TIR_co10"]:
+    if xtype in ['sfr',"12co10","12co21","PACS","sigtir","TIR_co21","TIR_co10"]:
 
         deltax = (xmax - xmin)
         if binsize is None:
@@ -62,7 +62,7 @@ def stack_pix_by_x(struct, lines, xtype, x_vec ,xmin, xmax ,galaxy, binsize = No
         xmin_bin = np.arange(nbins)*binsize+xmin
         xmax_bin = xmin_bin+binsize #< xmax
         xmid_bin = (xmin_bin+xmax_bin)*0.5
-    
+
     # -------------------------------------------------------------------------
     # Loop Over List of Tag Names
     # ------------------------------------------------------------------------
@@ -85,7 +85,7 @@ def stack_pix_by_x(struct, lines, xtype, x_vec ,xmin, xmax ,galaxy, binsize = No
             bins_output = prof.bin_prof(x_vec[maskind], struct[stack_tags["tag_in"][i]][maskind],\
                                  xmin_in = xmin, xmax_in = xmax, binsize_in = binsize, oversamp = 1. )
 
-        
+
         if median == "median":
             out_struc[stack_tags["tag_in"][i]] = bins_output["medprof"]
         else:
