@@ -311,7 +311,7 @@ def get_stack(galaxy,prior_lines,lines, dir_save, dir_data ='./../../data/Databa
 
             # Fill in dictionary
             stack["rms_K_"+line][j] = rms_line
-            stack["peak_K_"+line][j] = np.nanmax(line_ii)
+            stack["peak_K_"+line][j] = np.nanmax(spec_to_integrate*mask)
 
             stack["ii_K_kms_"+line][j] = line_ii
             stack["uc_ii_K_kms_"+line][j] = line_uc
