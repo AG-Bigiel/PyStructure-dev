@@ -321,11 +321,11 @@ def get_stack(galaxy,prior_lines,lines, dir_save, dir_data ='./../../data/Databa
             if SNR_line<3:
                 #if window found: integrate over that
                 if np.nansum(mask)>2:
-                    stack["limit_K_kms_"+line][j] = 2*rms*max([1, np.sqrt(np.nansum(mask))])*abs(v[1]-v[0])
+                    stack["limit_K_kms_"+line][j] = 2*rms_line*max([1, np.sqrt(np.nansum(mask))])*abs(v[1]-v[0])
 
                 #if no window found: use (default) 30 km/s window
                 else:
-                    stack["limit_K_kms_"+line][j] = 2*rms*no_detec_wdw
+                    stack["limit_K_kms_"+line][j] = 2*rms_line*no_detec_wdw
 
 
     path_save = dir_save + galaxy+"_stack_"+xtype+".npy"
