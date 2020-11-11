@@ -157,7 +157,7 @@ def process_spectra(sources_data, lines_data,fname,shuff_axis, run_success,just_
                       (np.sqrt(np.nansum(shuffled_mask, axis = 1))))*this_rms*\
                       abs(this_vaxis[1] - this_vaxis[0])
 
-
+            this_tpeak = np.nanmax(this_spec*shuffled_mask, axis = 1)
 
             # Save in structure
 
@@ -165,8 +165,10 @@ def process_spectra(sources_data, lines_data,fname,shuff_axis, run_success,just_
 
                 tag_ii = "INT_VAL_"+line_name
                 tag_uc = "INT_UC_" + line_name
+                tag_tpeak = "SPEC_TPEAK_" + line_name
                 this_data[tag_ii] = this_ii
                 this_data[tag_uc] = this_uc
+                this_data[tag_tpeak] = this_tpeak
             else:
                 print("[INFO]\t Intensity Map for "+lines_data["line_name"][jj]+"already provided, skipping." )
 

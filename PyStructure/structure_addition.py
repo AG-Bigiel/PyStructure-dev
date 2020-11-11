@@ -87,6 +87,7 @@ def add_spec_to_struct (struct={}, line="", unit="", desc="", n_chan = 500):
     res_name = "SPEC_RES_"+line.upper()
     unit_name = "SPEC_UNIT_"+line.upper()
     desc_name = "SPEC_DESC_"+line.upper()
+    tpeak_name = "SPEC_TPEAK_"+line.upper()
 
     new_struct = copy.copy(struct)
 
@@ -103,6 +104,7 @@ def add_spec_to_struct (struct={}, line="", unit="", desc="", n_chan = 500):
     new_struct[res_name]  = np.nan
     new_struct[unit_name]  = unit
     new_struct[desc_name]  = desc
+    new_struct[tpeak_name]  = np.nan
 
 
     return new_struct
