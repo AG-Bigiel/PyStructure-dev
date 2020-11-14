@@ -109,7 +109,6 @@ def get_bins_1d(data1, data2, data1_err, data2_err, oversample=1, bins='', nbins
         else:
             print('[ERROR] Method not known')
             
-        x[i] = (bins[i+1]+bins[i])/2
         p1[i] = np.nanpercentile(data2[ids], 50 - 34.1)
         p2[i] = np.nanpercentile(data2[ids], 50 + 34.1)
 
@@ -265,7 +264,6 @@ def get_bins_ratio_1d(xdata, y1data, y2data, xdata_err, y1data_err, y2data_err, 
         else:
             print('[ERROR] Method not known')
             
-        x[i] = (bins[i+1]+bins[i])/2
         p1[i] = np.nanpercentile(y1data[ids], 50 - 34.1)/np.nanpercentile(y2data[ids], 50 - 34.1)
         p2[i] = np.nanpercentile(y1data[ids], 50 + 34.1)/np.nanpercentile(y2data[ids], 50 + 34.1)
 
