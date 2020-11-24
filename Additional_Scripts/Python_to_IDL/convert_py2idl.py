@@ -3,6 +3,7 @@ import numpy as np
 import os
 import argparse
 import sys
+__author__ = "J. den Brok"
 
 def update_progress(job_title, progress):
     """
@@ -41,7 +42,7 @@ for i,key in enumerate(struct.keys()):
     # if parameter is just a float, int, str, use the pidly function to add keyword
     if not isinstance(struct[key], np.ndarray) and not isinstance(struct[key], list):
         #idl key cannot include "-", "+", etc.
-        idl_key = key.replace("-","_") 
+        idl_key = key.replace("-","_")
         data = {idl_key: struct[key]}
         tag_new = idl._python_to_idl_structure(data, "struct_add")
         idl(tag_new)
@@ -52,20 +53,20 @@ for i,key in enumerate(struct.keys()):
             idl("struct = create_struct(struct, struct_add)")
         else:
             idl('struct.(where(tags eq "'+idl_key+'")) = '+tag_new.split(":")[-1].split("}")[0])
-    
+
     #if paramezer is a list
     elif isinstance(struct[key], list):
         idl_key = key.replace("-","_")
         with open('listfile.txt', 'w') as filehandle:
             for listitem in struct[key]:
                 filehandle.write('%s\n' % listitem)
-    
+
         if isinstance(struct[key][0], str):
             idl('readcol,"'+"listfile.txt"+'" , list_file, format="A", /SILENT ')
         else:
              idl('readcol,"'+"listfile.txt"+'" , list_file, /SILENT ')
         idl("struct_add = {"+idl_key+": list_file}")
-        
+
         idl("tags = tag_names(struct)")
         idl('tot = total(tags eq '+'"'+key.replace("-","_")+'"'+')')
         # check if tag is not already defined
@@ -82,15 +83,15 @@ for i,key in enumerate(struct.keys()):
 
         if shape_key==1:
             np.savetxt("temp_file.txt", struct[key])
-            
-            
+
+
             idl('readcol,"'+"temp_file.txt"+'" , temp_file, /SILENT ')
 
             idl("struct_add = {"+idl_key+": temp_file}")
             idl("tags = tag_names(struct)")
             idl('tot = total(tags eq '+'"'+idl_key+'"'+')')
             # check if tag is not already defined
-            
+
             if idl.tot==0:
                 idl("struct = create_struct(struct, struct_add)")
             else:
@@ -106,7 +107,7 @@ for i,key in enumerate(struct.keys()):
                 idl('readcol,"'+"temp_file.txt"+'" , this_spec, /SILENT ')
                 idl("empty_spec["+str(n)+",*] = this_spec")
                 os.remove("temp_file.txt")
-                
+
 
             idl("struct_add = {"+idl_key+": empty_spec}")
             idl("struct = create_struct(struct, struct_add)")
@@ -115,8 +116,3 @@ for i,key in enumerate(struct.keys()):
 
 idl('save, file="'+path.replace(".npy", ".idl")+'" , struct')
 update_progress("\t Converting",1)
-    
-
-
-
-
