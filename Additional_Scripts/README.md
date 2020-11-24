@@ -9,3 +9,5 @@ This folder contains simple python routines
 * `errmap_rob.py`: Routine that computes a 2D map indicating the channel error of each pixel.
 * `grow_mask.py`: Routine (from IDL cprops library) that has several methods to generate a segmentation mask.
 * `bindata.py`: Routine to bin data.
+* `Python_to_IDL`: Scripts that convert Python dictionary to an IDL structure
+
