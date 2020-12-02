@@ -5,7 +5,7 @@ import stacking_func as func
 import stack_specs as stck_spc
 import fitting_routine as fit
 import matplotlib.pyplot as plt
-from astropy.stats import median_absolute_deviation
+from astropy.stats import median_absolute_deviation, mad_std
 import copy
 import warnings
 warnings.filterwarnings("ignore")
@@ -305,7 +305,7 @@ def get_stack(galaxy,prior_lines,lines, dir_save, dir_data ='./../../data/Databa
             #calculate rms of line
             rms_line = median_absolute_deviation(spec_to_integrate, axis = None,ignore_nan=True)
             rms_line = median_absolute_deviation(spec_to_integrate[np.where(spec_to_integrate<3*rms_line)],ignore_nan=True)
-
+            std_line = mad_std(spec_to_integrate[np.where(spec_to_integrate<3*rms_line)], axis = None,ignore_nan=True)
             line_ii = np.nansum(spec_to_integrate*mask)*abs(v[1]-v[0])
             line_uc = max([1, np.sqrt(np.nansum(mask))])*rms_line*abs(v[1]-v[0])
 
@@ -321,11 +321,11 @@ def get_stack(galaxy,prior_lines,lines, dir_save, dir_data ='./../../data/Databa
             if SNR_line<3:
                 #if window found: integrate over that
                 if np.nansum(mask)>2:
-                    stack["limit_K_kms_"+line][j] = 2*rms_line*max([1, np.sqrt(np.nansum(mask))])*abs(v[1]-v[0])
+                    stack["limit_K_kms_"+line][j] = 3*std_line*max([1, np.sqrt(np.nansum(mask))])*abs(v[1]-v[0])
 
                 #if no window found: use (default) 30 km/s window
                 else:
-                    stack["limit_K_kms_"+line][j] = 2*rms_line*no_detec_wdw
+                    stack["limit_K_kms_"+line][j] = 3*std_line*no_detec_wdw
 
 
     path_save = dir_save + galaxy+"_stack_"+xtype+".npy"
