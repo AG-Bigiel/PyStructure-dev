@@ -10,4 +10,5 @@ This folder contains simple python routines
 * `grow_mask.py`: Routine (from IDL cprops library) that has several methods to generate a segmentation mask.
 * `bindata.py`: Routine to bin data.
 * `Python_to_IDL`: Scripts that convert Python dictionary to an IDL structure
+* `channelmaps.py`: Script to create channelmaps
 
