@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from scipy import stats
-from astropy.stats import median_absolute_deviation
+from astropy.stats import median_absolute_deviation, mad_std
 
 from structure_addition import *
 from shuffle_spec import *
@@ -146,7 +146,7 @@ def process_spectra(sources_data, lines_data,fname,shuff_axis, run_success,just_
             for m in range(n_pts):
                 if np.nansum(this_spec[m,:]!=0, axis = None)>=1:
 
-                    this_rms[m] = median_absolute_deviation(\
+                    this_rms[m] = mad_std(\
                     this_spec[m,:][np.where(np.logical_and(\
                     shuffled_mask[m,:]==0, this_spec[m,:]!=0))], ignore_nan=True)
 
