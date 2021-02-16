@@ -34,14 +34,14 @@ def twod_head(hdul_header):
 
     # Now set the number of axes to two
     header_copy["NAXIS"] = 2
-    
+
     #check if certain keyword is in header
     if 'WCSAXES' in header_copy:
         header_copy['WCSAXES'] = 2
 
-    #delete additional axes
+        #delete additional axes
     if naxis > 2:
-	header_copy['WCSAXES'] = 2
+        header_copy['WCSAXES'] = 2
         for i in range(3,naxis+1):
             del header_copy["*{}".format(int(i))]
     return header_copy
