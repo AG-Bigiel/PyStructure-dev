@@ -43,5 +43,5 @@ def twod_head(hdul_header):
     if naxis > 2:
         header_copy['WCSAXES'] = 2
         for i in range(3,naxis+1):
-            del header_copy["*{}".format(int(i))]
+            del header_copy["*{}*".format(int(i))]
     return header_copy
