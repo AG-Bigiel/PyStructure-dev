@@ -66,13 +66,13 @@ overlay_file = "_12co21.fits"
 out_dic = "Output/"
 
 # Set the target resolution for all data in arcseconds (if resolution set to angular)
-target_res = 23.
+target_res = 24.
 
 
 #!!!!!!!!!!!!!Advanced------------------------------------------
 NAXIS_shuff = 200
 CDELT_SHUFF = 4000.  #m/s
-
+spacing_per_beam = 2 #default, use half beam spacing
 """
 angular: use target_res in as
 physical: convert target_res (in pc) to as
@@ -237,7 +237,7 @@ def create_database(just_source=None, quiet=False):
             print('[ERROR]\t Resolution keyword has to be "native","angular" or "physical".')
 
         # Determine
-        spacing = target_res_as / 3600. / 2.0
+        spacing = target_res_as / 3600. / spacing_per_beam
 
         samp_ra, samp_dec = make_sampling_points(
                              ra_ctr = glxy_data["ra_ctr"][ii],
