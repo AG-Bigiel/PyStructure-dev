@@ -5,31 +5,37 @@ import copy
 from polar_coord_funcs import *
 from deconvolve_gaussian import *
 from gauss_PSF import *
-from scipy import signal
 import matplotlib.pyplot as plt
-from scipy import ndimage
 from astropy.convolution import convolve, convolve_fft
 
 
 def round_sig(x, sig=2):
     return round(x, sig-int(np.floor(np.log10(abs(x))))-1)
 
+def convolve_func(data, kernel, method = "direct"):
+    """
+    Perform either the direct or the fast fourier transform convolution
+    """
+    if method == "direct":
+        conv_data = convolve(data,kernel)
+    else:
+        conv_data = convolve_fft(data,kernel)
+        
+    return conv_data
+    
+    
 def conv_with_gauss(in_data,
                     in_hdr = None,
                     start_beam = None,
                     pix_deg = None,
                     target_beam = None,
-                    data = None,
-                    hdr = None,
                     no_ft = False,
                     in_weight = None,
-                    weight = None,
                     out_weight_file= None,
                     out_file = None,
                     unc = False,
                     perbeam = False,
-                    quiet = False,
-                    no_pad = False):
+                    quiet = False):
     """
     NAME:
     ;
@@ -39,7 +45,7 @@ def conv_with_gauss(in_data,
     ;
     ; Wrapper to "convolve" (FFT) or "convol" (direct kernel
     ; multiplication) that will generate an elliptical gaussian PSF and
-    ; then convolve it with the target image. Works on cubes and has some
+    ; then convolve it with the target image. Works on cubes and has the
     ; ability to handle not-a-number values.
     ;
     ; CATEGORY:
@@ -48,26 +54,24 @@ def conv_with_gauss(in_data,
     ;
     ; CALLING SEQUENCE:
     ;
-    ;pro conv_with_gauss $
-    ;   , data=in_data $
-    ;   , hdr=in_hdr $
-    ;   , start_beam=start_beam $
-    ;   , pix_deg=pix_deg $
-    ;   , target_beam=target_beam $
-    ;   , out_file=out_file $
-    ;   , out_data = data $
-    ;   , out_hdr = hdr $
-    ;   , no_ft=no_ft $
-    ;   , uncertainty = unc $
-    ;   , perbeam = perbeam $
-    ;   , quiet=quiet $
-    ;  , pad = pad
+    ; conv_with_gauss(in_data=data
+    ;                 in_hdr=hdr
+    ;                 start_beam=start_beam,
+    ;                 pix_deg=pix_deg,
+    ;                 target_beam=target_beam,
+    ;                 out_file=out_file,
+    ;                 in_weight = weight,
+    ;                 no_ft=no_ft,
+    ;                 uncertainty = unc,
+    ;                 perbeam = perbeam,
+    ;                 quiet=quiet)
+    ;
     ;
     ; INPUTS:
     ;
-    ; data: accepts either a cube or a FITS file name.
+    ; in_data: accepts either a cube (np.ndarray) or a FITS file name.
     ;
-    ; hdr: an input header (not needed if a FITS file is supplied or if
+    ; in_hdr: an input header (not needed if a FITS file is supplied or if
     ; both a starting beam size and a pixel scale are supplied).
     ;
     ; target_beam: the target PSF measured in ARCSECONDS as a three
@@ -89,7 +93,7 @@ def conv_with_gauss(in_data,
     ; avoid having to pass a header (and so allows the program to be used
     ; as a general convolution routine).
     ;
-    ; weight: perform a weighted convolution, multiplying the cube or map
+    ; in_weight: perform a weighted convolution, multiplying the cube or map
     ; by the weight map before hand.
     ;
     ; unc: tell the program to treat the data as an "uncertainty" map and
@@ -107,7 +111,7 @@ def conv_with_gauss(in_data,
     ; quiet: if thrown, suppresses the report on flux conservation and
     ; kernel calculations.
     ;
-    ; no_ft: passed directly to 'convolve.' Tells the program to use the IDL
+    ; no_ft: passed directly to 'convolve.' Tells the program to use the astropy
     ; 'convol' function instead of a Fourier transform.
     ;
     ; OUTPUTS:
@@ -125,13 +129,14 @@ def conv_with_gauss(in_data,
     ; modified to do elliptical gaussians - karin 26 jun 11
     ; AKL - cleaned up and folded in to cprops. May have broken PA
     ;       convention.
-    ; caught asymmetric kernel bug - dec 14
+    ;     - caught asymmetric kernel bug - dec 14
     ;
+    ; Jakob den Brok:
+    ;      - Oct 2021: Translated to IDL routine to Python
+    ;      - Mar 2021: Cleaned and get rid of IDL syntax leftovers
+    :
     ;-
     """
-
-    success = True
-
 
     #---------------------------------------------------------------
     # Read in or copy data
@@ -182,10 +187,6 @@ def conv_with_gauss(in_data,
 
     # Save total flux.
     flux_before = np.nansum(data)
-
-    # NaNs cause problems for the FFT - set them to zero
-    ind_nan = np.where(np.isnan(data))
-    data = np.nan_to_num(data)
 
 
     #; Measure the pixel size
@@ -299,17 +300,12 @@ def conv_with_gauss(in_data,
         if len(dim_data) == 3:
             new_data = copy.deepcopy(data)
             for spec_n in range(dim_data[0]):
-
-                #new_data[spec_n,:,:] = signal.convolve(data[spec_n, :,:],kernel,mode = "same", method = method)
-                #new_data[spec_n,:,:] = ndimage.convolve(data[spec_n, :,:],kernel)
-                if method == "direct":
-                    new_data[spec_n,:,:] = convolve(data[spec_n, :,:],kernel)
-                else:
-                    new_data[spec_n,:,:] = convolve_fft(data[spec_n, :,:],kernel)
+                convolve_func
+                new_data[spec_n,:,:] = convolve_func(data[spec_n, :,:],kernel,method)
 
             data = new_data
         else:
-            data = convolve(data, kernel)
+            data = convolve_func(data, kernel,method)
     else:
         #    In this case we do weight the image. We convolve both the image
         #    and the weights, which can be 2d or 3d. Then we divide the final
@@ -333,24 +329,22 @@ def conv_with_gauss(in_data,
             #Convolve the weighted data to the new resolution plane by plane
             new_data = copy.deepcopy(weighted_data)
             for spec_n in range(dim_data[0]):
-                new_data[spec_n,:,:] = signal.convolve(weighted_data[spec_n, :,:],kernel, \
-                                                           method = method)
+                new_data[spec_n,:,:] = convolve_func(weighted_data[spec_n, :,:],kernel,method)
             weighted_data = new_data
 
             #       Convolve the weights, taking into account their shape, and
             #       then divide the convolved weighted cube by the convolved
             #       weight cube.
             if len(dim_wt) == 2:
-                weight = signal.convolve(weight,kernel,
-                                                           method = method)
+                weight = convolve_func(weight,kernel,method)
+                    
                 data = weighted_data
                 for n_spec in range(dim_data[0]):
                     data[n_spec,:,:] = weighted_data[n_spec,:,:] / weight
             else:
                 new_weight = copy.deepcopy(weight)
                 for n_spec in range(dim_data[0]):
-                    new_weight[n_spec,:,:] = signal.convolve(weight[spec_n, :,:],kernel,
-                                                               method = method)
+                    new_weight[n_spec,:,:] = convolve_func(weight[spec_n, :,:],kernel,method)
                 weight = new_weight
                 data = weighted_data / weight
 
@@ -358,8 +352,8 @@ def conv_with_gauss(in_data,
                 # The two-d only case
 
             weighted_data = weight*data
-            weigted_data = signal.convolve(weighted_data,kernel, method = method)
-            weight = signal.convolve(weight,kernel, method = method)
+            weigted_data = convolve_func(weighted_data,kernel,method)
+            weight = convolve_func(weight,kernel,  method)
 
             data = weighted_data / weight
 
@@ -406,7 +400,7 @@ def conv_with_gauss(in_data,
         #;    Scale the data
         data *= scale_fac
 
-    data[ind_nan] = np.nan
+    
 
     #; If we are requested to treat the units as "per beam" then adjust the
     #; final map by the ratio of beam areas (final beam/original beam).
@@ -457,10 +451,10 @@ def conv_with_gauss(in_data,
     hdr['BMIN'] = (target_beam[1]/3600.,'FWHM BEAM IN DEGREES')
     hdr['BPA'] = (target_beam[2],'POSITION ANGLE IN DEGREES')
 
-    hdr["HISTORY"] = 'IDL CONV_WITH_GAUSS: convolved with '+\
+    hdr["HISTORY"] = 'Python CONV_WITH_GAUSS: convolved with '+\
                       str([kernel_bmaj, kernel_bmin, kernel_bpa]) + ' pixel gaussian'
     if unc:
-        hdr["HISTORY"] = 'IDL CONV_WITH_GAUSS: treated as an uncertainty map'
+        hdr["HISTORY"] = 'Python CONV_WITH_GAUSS: treated as an uncertainty map'
 
     if not out_file is None:
         fits.writeto(out_file,data, hdr)
@@ -477,23 +471,23 @@ def conv_with_gauss(in_data,
                 fits.writeto(out_weight_file, weight, hdr)
 
 
-    success = True
+    return data, hdr
 
-    if not in_weight is None:
-        return weight, hdr
-    else:
-        return data, hdr
 
 
 
 
 
 """
+#----------------------------------------
+#Example on how to run the function
+#----------------------------------------
 
-data, header = fits.getdata("/vol/alcina/data1/jdenbrok/Proj_I_2019/data/ngc5194_co21.fits", header = True)
+#Load in the data
+data, header = fits.getdata("/Users/jdenbrok/Desktop/PhD_Bonn/CLAWS/data/3D/original/ngc5194_co21_claws.fits", header = True)
 
-target_res_as = 13
-
+# Specify the target resolution (in arcsec)
+target_res_as = 33
 data_out, hdr_out = conv_with_gauss(data, header, target_beam = target_res_as*np.array([1,1,0]))
 
 
@@ -501,15 +495,12 @@ data_out, hdr_out = conv_with_gauss(data, header, target_beam = target_res_as*np
 
 int_map = np.nansum(data, axis = 0)
 int_map_out = np.nansum(data_out, axis = 0)
-data_idl = fits.getdata("/users/jdenbrok/Desktop/test_conv.fits")
-int_map_out_idl = np.nansum(data_idl, axis = 0)
-
 
 plt.subplot(1,2,1)
-plt.imshow(int_map_out_idl, vmin = 0, vmax = 15)
+plt.imshow(int_map, vmin = 0, vmax = 15, origin = "lower")
 plt.colorbar()
 plt.subplot(1,2,2)
-plt.imshow(int_map_out, vmin = 0, vmax = 15)
+plt.imshow(int_map_out, vmin = 0, vmax = 15, origin = "lower")
 plt.colorbar()
 
 plt.show()
