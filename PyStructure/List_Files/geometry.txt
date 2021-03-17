@@ -14,5 +14,5 @@
 # Distances and uncertainties from Brent Groves' NED querying program.
 # Inclinations and PA from Maria's compilation
 # Radius from Leda
-ngc5194	    202.4696292	      47.1951722	 8.0	      0.2	20.0	NaN	172.0	NaN	3.88	0.05 T08
+ngc5194	202.4696292	47.1951722	8.0	0.2	20.0	NaN	172.0	NaN	3.88	0.05
 # 32.6 and 163
