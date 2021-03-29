@@ -66,13 +66,15 @@ overlay_file = "_12co21.fits"
 out_dic = "Output/"
 
 # Set the target resolution for all data in arcseconds (if resolution set to angular)
-target_res = 24.
+target_res = 15.
 
 
 #!!!!!!!!!!!!!Advanced------------------------------------------
 NAXIS_shuff = 200
 CDELT_SHUFF = 4000.  #m/s
 spacing_per_beam = 2 #default, use half beam spacing
+max_rad = 0.2 #default extension of the map (increase, if you map is larger)
+
 """
 angular: use target_res in as
 physical: convert target_res (in pc) to as
@@ -242,7 +244,7 @@ def create_database(just_source=None, quiet=False):
         samp_ra, samp_dec = make_sampling_points(
                              ra_ctr = glxy_data["ra_ctr"][ii],
                              dec_ctr = glxy_data["dec_ctr"][ii],
-                             max_rad = 0.1,
+                             max_rad = max_rad,
                              spacing = spacing,
                              mask = mask,
                              hdr_mask = mask_hdr,
