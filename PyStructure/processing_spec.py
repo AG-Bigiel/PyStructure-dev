@@ -170,9 +170,11 @@ def process_spectra(sources_data, lines_data,fname,shuff_axis, run_success,just_
                 tag_ii = "INT_VAL_"+line_name
                 tag_uc = "INT_UC_" + line_name
                 tag_tpeak = "SPEC_TPEAK_" + line_name
+                tag_rms = "SPEC_RMS_" + line_name
                 this_data[tag_ii] = this_ii
                 this_data[tag_uc] = this_uc
                 this_data[tag_tpeak] = this_tpeak
+                this_data[tag_rms] = this_rms
             else:
                 print("[INFO]\t Intensity Map for "+lines_data["line_name"][jj]+"already provided, skipping." )
 

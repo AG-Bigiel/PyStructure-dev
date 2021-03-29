@@ -121,9 +121,6 @@ def sample_at_res(in_data,
         data_out, footprint = reproject_interp((data,hdr_out), target_hdr)
         data = data_out
         
-        
-        print("")
-        
         # Save the convloved file as a fits file
         if save_fits:
             out_header = copy.copy(target_hdr)
