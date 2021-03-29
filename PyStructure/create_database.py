@@ -73,7 +73,7 @@ target_res = 15.
 NAXIS_shuff = 200
 CDELT_SHUFF = 4000.  #m/s
 spacing_per_beam = 2 #default, use half beam spacing
-max_rad = 0.2 #default extension of the map (increase, if you map is larger)
+max_rad = 0.2 #default extension of the map in deg (increase, if you map is larger)
 
 """
 angular: use target_res in as
