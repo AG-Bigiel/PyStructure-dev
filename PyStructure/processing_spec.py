@@ -75,7 +75,9 @@ def process_spectra(sources_data, lines_data,fname,shuff_axis, run_success,just_
             mask = np.array(((mask + np.roll(mask, 1, 1) + np.roll(mask, -1, 1)) >= 1), dtype = int)
 
 
-
+        #store the mask in the PyStructure
+        this_data["SPEC_MASK"]= mask
+        
         # Derive the mean CO velocity
         co_vmean = np.zeros(n_pts)*np.nan
 
