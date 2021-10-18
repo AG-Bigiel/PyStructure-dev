@@ -26,7 +26,7 @@ MODIFICATION HISTORY
 __author__ = "J. den Brok"
 __version__ = "v1.0.1"
 __email__ = "jdenbrok@astro.uni-bonn.de"
-__credits__ = ["A. Leroy ", "I. Beslic"]
+__credits__ = ["M. Jimenez-Donaire", "A. Leroy ", "I. Beslic"]
 
 
 import numpy as np
