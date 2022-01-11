@@ -6,14 +6,74 @@ from astropy.stats import median_absolute_deviation, mad_std
 from structure_addition import *
 from shuffle_spec import *
 
-def process_spectra(sources_data, lines_data,fname,shuff_axis, run_success,just_source = None):
+
+def construct_mask(ref_line, this_data, SN_processing):
+    """
+    Function to construct the mask based on high and low SN cut
+    """
+    ref_line_data = this_data["SPEC_VAL_"+ref_line]
+    n_pts = np.shape(ref_line_data)[0]
+    n_chan = np.shape(ref_line_data)[1]
+
+    line_vaxis = this_data['SPEC_VCHAN0_'+ref_line]+np.arange(n_chan)*this_data['SPEC_DELTAV_'+ref_line]
+
+    line_vaxis = line_vaxis/1000 #to km/s
+    #Estimate rms
+    rms = median_absolute_deviation(ref_line_data, axis = None, ignore_nan = True)
+    rms = median_absolute_deviation(ref_line_data[np.where(ref_line_data<3*rms)], ignore_nan = True)
+
+    # Mask each spectrum
+    high_tresh, low_tresh = SN_processing[0], SN_processing[1]
+    mask = np.array(ref_line_data > high_tresh * rms, dtype = int)
+    low_mask = np.array(ref_line_data > low_tresh * rms, dtype = int)
+
+    mask = mask & (np.roll(mask, 1,1) | np.roll(mask,-1,1))
+
+    #remove spikes along spectral axis:
+    mask = np.array((mask + np.roll(mask, 1, 1) + np.roll(mask, -1, 1))>=3, dtype = int)
+    low_mask = np.array((low_mask + np.roll(low_mask, 1, 1) + np.roll(low_mask, -1, 1))>=3, dtype = int)
+
+    #remove spikes along spatial axis:
+    #mask = np.array((mask + np.roll(mask, 1, 0) + np.roll(mask, -1, 0))>=3, dtype = int)
+    #low_mask = np.array((low_mask + np.roll(mask, 1, 0) + np.roll(low_mask, -1, 0))>=3, dtype = int)
+
+    #expand to cover all > 2sigma that have a 2-at-4sigma core
+    for kk in range(5):
+        mask = np.array(((mask + np.roll(mask, 1, 1) + np.roll(mask, -1, 1)) >= 1), dtype = int)*low_mask
+
+    #expand to cover part of edge of the emission line
+    for kk in range(2):
+        mask = np.array(((mask + np.roll(mask, 1, 1) + np.roll(mask, -1, 1)) >= 1), dtype = int)
+
+    # Derive the ref line mean velocity
+    line_vmean = np.zeros(n_pts)*np.nan
+
+    for jj in range(n_pts):
+        line_vmean[jj] = np.nansum(line_vaxis * ref_line_data[jj,:]*mask[jj,:])/ \
+                       np.nansum(ref_line_data[jj,:]*mask[jj,:])
+
+    return mask, line_vmean, line_vaxis
+
+def process_spectra(sources_data,
+                    lines_data,
+                    fname,shuff_axis,
+                    run_success,
+                    ref_line_method,
+                    SN_processing,
+                    just_source = None
+                    ):
     """
     :param sources_data: Pandas DataFrame which is the geometry.txt file
     :param lines_data:   Pandas DataFrame which is the cubes_list.txt
     """
-    ref_line = lines_data["line_name"][0].upper()
+
     n_sources = len(sources_data["galaxy"])
     n_lines = len(lines_data["line_name"])
+    if ref_line_method in list(lines_data["line_name"]):
+        #user defined reference line
+        ref_line = ref_line_method.upper()
+    else:
+        ref_line = lines_data["line_name"][0].upper()
 
     for ii in range(n_sources):
 
@@ -37,74 +97,39 @@ def process_spectra(sources_data, lines_data,fname,shuff_axis, run_success,just_
         tags = this_data.keys()
 
         #--------------------------------------------------------------
-        #  Build a CO-based mask
+        #  Build a mask based on reference line(s)
         #--------------------------------------------------------------
 
-        # Extract CO data
-        co21 = this_data["SPEC_VAL_"+ref_line]
-        n_pts = np.shape(co21)[0]
-        n_chan = np.shape(co21)[1]
-        n_chan_new = 200
-        co_vaxis = this_data['SPEC_VCHAN0_'+ref_line]+np.arange(n_chan)*this_data['SPEC_DELTAV_'+ref_line]
+        # Use function for mask
+        mask, ref_line_vmean, ref_line_vaxis = construct_mask(ref_line, this_data, SN_processing)
+        this_data["SPEC_MASK_"+ref_line]= mask
+        this_data["INT_VAL_V"+ref_line] = ref_line_vmean
 
-        co_vaxis = co_vaxis/1000 #to km/s
-        #Estimate rms
-        rms = median_absolute_deviation(co21, axis = None, ignore_nan = True)
-        rms = median_absolute_deviation(co21[np.where(co21<3*rms)], ignore_nan = True)
+        #check if all lines used as reference line
+        n_mask = 0
+        if ref_line_method in ["all"]:
+            n_mask = n_lines
+            print("[INFO]\tAll lines used as prior")
+        elif isinstance(ref_line_method, int):
+            n_mask = np.min([n_lines,ref_line_method])
+            print("[INFO]\tUsing first "+str(n_mask+1)+" lines as prior")
+        if n_mask>0:
+            for n_mask_i in range(1,n_mask):
+                line_i = lines_data["line_name"][n_mask_i].upper()
+                mask_i, ref_line_vmean_i, ref_line_vaxis_i = construct_mask(line_i, this_data, SN_processing)
+                this_data["SPEC_MASK_"+line_i]= mask_i
+                this_data["INT_VAL_V"+line_i] = ref_line_vmean_i
 
-        # Mask each spectrum
-        mask = np.array(co21 > 4 * rms, dtype = int)
-        low_mask = np.array(co21 > 2 * rms, dtype = int)
-
-        mask = mask & (np.roll(mask, 1,1) | np.roll(mask,-1,1))
-
-        #remove spikes along spectral axis:
-        mask = np.array((mask + np.roll(mask, 1, 1) + np.roll(mask, -1, 1))>=3, dtype = int)
-        low_mask = np.array((low_mask + np.roll(low_mask, 1, 1) + np.roll(low_mask, -1, 1))>=3, dtype = int)
-
-        #remove spikes along spatial axis:
-        #mask = np.array((mask + np.roll(mask, 1, 0) + np.roll(mask, -1, 0))>=3, dtype = int)
-        #low_mask = np.array((low_mask + np.roll(mask, 1, 0) + np.roll(low_mask, -1, 0))>=3, dtype = int)
-
-        #expand to cover all > 2sigma that have a 2-at-4sigma core
-        for kk in range(5):
-            mask = np.array(((mask + np.roll(mask, 1, 1) + np.roll(mask, -1, 1)) >= 1), dtype = int)*low_mask
-        
-        #expand to cover part of edge of the emission line
-        for kk in range(2):
-            mask = np.array(((mask + np.roll(mask, 1, 1) + np.roll(mask, -1, 1)) >= 1), dtype = int)
-
-
+                # add mask to existing mask
+                mask = mask | mask_i
         #store the mask in the PyStructure
         this_data["SPEC_MASK"]= mask
-        
-        # Derive the mean CO velocity
-        co_vmean = np.zeros(n_pts)*np.nan
 
-        for jj in range(n_pts):
-            co_vmean[jj] = np.nansum(co_vaxis * co21[jj,:]*mask[jj,:])/ \
-                           np.nansum(co21[jj,:]*mask[jj,:])
-
-        # Derive the mean CO intensity
-        co_ii = np.nansum(co21*mask, axis = 1)*abs(co_vaxis[1]-co_vaxis[0])
-
-        # DC 28 feb 2017, added max to have rms as UNC even if no channe;s in mask
-        co_uc = max([1, max(np.sqrt(np.nansum(mask, axis = 1)))])*rms*abs(co_vaxis[1]-co_vaxis[0])
-
-        # Shuffle the CO intensity
-        # TBD
-
-        # Save all in a structure
-        this_data = add_band_to_struct(struct = this_data, \
-                                       band = ref_line, \
-                                       unit = 'K km/s', \
-                                       desc = 'CO 2-1 Integrated Intensity')
-        this_data["INT_VAL_"+ref_line] = co_ii
-        this_data["INT_VAL_V"+ref_line] = co_vmean
 
         #-------------------------------------------------------------------
         # Apply the CO-based mask to the EMPIRE lines and shuffle them
         #-------------------------------------------------------------------
+        n_chan_new = 200
 
         for jj in range(n_lines):
             line_name = lines_data["line_name"][jj].upper()
@@ -141,7 +166,7 @@ def process_spectra(sources_data, lines_data,fname,shuff_axis, run_success,just_
 
 
             shuffled_mask = shuffle(spec = mask, \
-                                    vaxis = co_vaxis,\
+                                    vaxis = ref_line_vaxis,\
                                     zero = 0.0,\
                                     new_vaxis = this_vaxis, \
                                     interp = 0)
@@ -190,7 +215,7 @@ def process_spectra(sources_data, lines_data,fname,shuff_axis, run_success,just_
 
             shuffled_line = shuffle(spec = this_spec,\
                                     vaxis = this_vaxis,\
-                                    zero = co_vmean,
+                                    zero = ref_line_vmean,
                                     new_vaxis = new_vaxis,\
                                     interp = 0)
 

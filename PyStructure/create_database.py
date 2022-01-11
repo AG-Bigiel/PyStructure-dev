@@ -85,6 +85,17 @@ resolution = 'angular'
 # Save the convolved cubes & bands
 save_fits = False
 
+"""
+Define which line to use as reference line for the spectral processing
+"first": use first line in cube_list as reference line
+"<LINE_NAME>": Use line name as reference line
+"all": Use all lines in cube for mask
+n: (integer) use first n lines as reference. n=0 is same result as "first".
+"""
+ref_line = "all"
+
+#define upper and lower mask threshold (S/N)
+SN_processing = [2,4]
 #---------------------------------------------------------------
 
 
@@ -511,7 +522,12 @@ def create_database(just_source=None, quiet=False):
     #---------------------------------------------------------------------
     if not quiet:
         print("[INFO]\t Start processing Spectra.")
-    process_spectra(glxy_data, cubes,fnames, [NAXIS_shuff, CDELT_SHUFF],run_success)
+    process_spectra(glxy_data,
+                    cubes,fnames,
+                    [NAXIS_shuff, CDELT_SHUFF],
+                    run_success,
+                    ref_line,
+                    SN_processing)
 
 
     return run_success
