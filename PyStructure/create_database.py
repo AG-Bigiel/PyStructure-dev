@@ -21,12 +21,15 @@ MODIFICATION HISTORY
 
     - v1.1.1 26 October 2020: More stable version. Several bugs fixed.
             - Used by whole Bonn group
+    - v1.2.1
+            - Implemented customization of reference line for masking.
+              Now several lines can be defined for the mask creation
 
 """
 __author__ = "J. den Brok"
-__version__ = "v1.0.1"
+__version__ = "v1.2.1"
 __email__ = "jdenbrok@astro.uni-bonn.de"
-__credits__ = ["M. Jimenez-Donaire", "A. Leroy ", "I. Beslic"]
+__credits__ = ["M. Jimenez-Donaire", "A. Leroy ", "l. Neumann", "I. Beslic"]
 
 
 import numpy as np
