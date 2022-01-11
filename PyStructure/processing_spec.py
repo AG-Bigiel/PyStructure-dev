@@ -23,7 +23,7 @@ def construct_mask(ref_line, this_data, SN_processing):
     rms = median_absolute_deviation(ref_line_data[np.where(ref_line_data<3*rms)], ignore_nan = True)
 
     # Mask each spectrum
-    high_tresh, low_tresh = SN_processing[0], SN_processing[1]
+    low_tresh, high_tresh = SN_processing[0], SN_processing[1]
     mask = np.array(ref_line_data > high_tresh * rms, dtype = int)
     low_mask = np.array(ref_line_data > low_tresh * rms, dtype = int)
 
