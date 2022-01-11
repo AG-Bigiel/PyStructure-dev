@@ -92,7 +92,7 @@ Define which line to use as reference line for the spectral processing
 "all": Use all lines in cube for mask
 n: (integer) use first n lines as reference. n=0 is same result as "first".
 """
-ref_line = "all"
+ref_line = "first"
 
 #define upper and lower mask threshold (S/N)
 SN_processing = [2,4]
