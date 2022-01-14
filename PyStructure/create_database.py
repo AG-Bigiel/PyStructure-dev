@@ -163,6 +163,11 @@ def create_database(just_source=None, quiet=False):
                                          band=bands["band_name"][ii],
                                          unit=bands["band_unit"][ii],
                                          desc=bands["band_desc"][ii])
+    for ii in range(n_bands):
+        empty_structure = add_kin_to_struct(struct=empty_structure,
+                                         band=bands["band_name"][ii],
+                                         unit=bands["band_unit"][ii],
+                                         desc=bands["band_desc"][ii])                                     
 
     if quiet == False:
         print("[INFO]\t {} band(s) added to structure.".format(n_bands))
