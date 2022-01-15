@@ -6,3 +6,5 @@ This repository contains the python scripts that sets up a structure (or rather 
 * **Step 1**: Prepare the `geometry.txt`, the `band_list.txt` and the `cube_list.txt` files.
 
 * **Step 2**: Make sure that the correct paths are given in the first lines of the `create_database.py` file.
+
+* **Step 3**: Run Python3 in the terminal: `$ python3 create_database.py`

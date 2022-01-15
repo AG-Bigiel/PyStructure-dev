@@ -21,13 +21,17 @@ MODIFICATION HISTORY
 
     - v1.1.1 26 October 2020: More stable version. Several bugs fixed.
             - Used by whole Bonn group
-    - v1.2.1
+    
+    - v1.2.1 January 2022
             - Implemented customization of reference line for masking.
               Now several lines can be defined for the mask creation
+    
+    - v1.2.2 January 2022
+            - Implement Moment 1, Moment 2 and EW calculation
 
 """
 __author__ = "J. den Brok"
-__version__ = "v1.2.1"
+__version__ = "v1.2.2"
 __email__ = "jdenbrok@astro.uni-bonn.de"
 __credits__ = ["M. Jimenez-Donaire", "A. Leroy ", "l. Neumann", "I. Beslic"]
 
@@ -69,7 +73,7 @@ overlay_file = "_12co21.fits"
 out_dic = "Output/"
 
 # Set the target resolution for all data in arcseconds (if resolution set to angular)
-target_res = 15.
+target_res = 27.
 
 
 #!!!!!!!!!!!!!Advanced------------------------------------------

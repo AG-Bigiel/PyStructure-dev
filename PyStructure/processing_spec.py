@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 from astropy.stats import median_absolute_deviation, mad_std
+from mom_computer import get_mom_maps
 
 from structure_addition import *
 from shuffle_spec import *
@@ -172,6 +173,8 @@ def process_spectra(sources_data,
                                     interp = 0)
 
             #Derive the mean Intensity
+            
+            """
             this_rms = np.zeros(n_pts)*np.nan
 
             for m in range(n_pts):
@@ -189,6 +192,10 @@ def process_spectra(sources_data,
                       abs(this_vaxis[1] - this_vaxis[0])
 
             this_tpeak = np.nanmax(this_spec*shuffled_mask, axis = 1)
+            """
+            
+            #compute moment_maps
+            mom_maps = get_mom_maps(this_spec, shuffled_mask,this_vaxis)
 
             # Save in structure
 
@@ -198,10 +205,29 @@ def process_spectra(sources_data,
                 tag_uc = "INT_UC_" + line_name
                 tag_tpeak = "SPEC_TPEAK_" + line_name
                 tag_rms = "SPEC_RMS_" + line_name
-                this_data[tag_ii] = this_ii
-                this_data[tag_uc] = this_uc
-                this_data[tag_tpeak] = this_tpeak
-                this_data[tag_rms] = this_rms
+                
+                tag_mom1 = "SPEC_MOM1_" + line_name
+                tag_mom1_err = "SPEC_EMOM1_" + line_name
+                
+                tag_mom2 = "SPEC_MOM2_" + line_name
+                tag_mom2_err = "SPEC_EMOM2_" + line_name
+                
+                tag_ew = "SPEC_EW_" + line_name
+                tag_ew_err = "SPEC_EEW_" + line_name
+                
+                # store the different calculations
+                this_data[tag_ii] = mom_maps["mom0"]
+                this_data[tag_uc] = mom_maps["mom0_err"]
+                this_data[tag_tpeak] = mom_maps["tpeak"]
+                this_data[tag_rms] = mom_maps["rms"]
+                this_data[tag_mom1] = mom_maps["mom1"]
+                this_data[tag_mom1_err] = mom_maps["mom1_err"]
+                this_data[tag_mom2] = mom_maps["mom2"]
+                this_data[tag_mom2_err] = mom_maps["mom2_err"]
+                
+                this_data[tag_ew] = mom_maps["ew"]
+                this_data[tag_ew_err] = mom_maps["ew_err"]
+                
             else:
                 print("[INFO]\t Intensity Map for "+lines_data["line_name"][jj]+"already provided, skipping." )
 
