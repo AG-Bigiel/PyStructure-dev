@@ -31,6 +31,15 @@ def add_band_to_struct(struct={}, band="", unit="", desc=""):
     res_name = "INT_RES_"+band.upper()
     unit_name = "INT_UNIT_"+band.upper()
     desc_name = "INT_DESC_"+band.upper()
+    tpeak_name = "INT_TPEAK_"+band.upper()
+    rms_name = "INT_RMS_"+band.upper()
+    #additional moment maps
+    mom1_name = "INT_MOM1_"+band.upper()
+    emom1_name = "INT_EMOM1_"+band.upper()
+    mom2_name = "INT_MOM2_"+band.upper()
+    emom2_name = "INT_EMOM2_"+band.upper()
+    ew_name = "INT_EW_"+band.upper()
+    eew_name = "INT_EEW_"+band.upper()
 
     new_struct = copy.copy(struct)
     if int_name in tags:
@@ -44,6 +53,14 @@ def add_band_to_struct(struct={}, band="", unit="", desc=""):
     new_struct[res_name] = np.nan
     new_struct[unit_name] = unit
     new_struct[desc_name]= desc
+    new_struct[tpeak_name]  = np.nan
+    new_struct[rms_name]  = np.nan
+    new_struct[mom1_name]  = np.nan
+    new_struct[emom1_name]  = np.nan
+    new_struct[mom2_name]  = np.nan
+    new_struct[emom2_name]  = np.nan
+    new_struct[ew_name]  = np.nan
+    new_struct[eew_name]  = np.nan
 
     return new_struct
 
@@ -89,6 +106,7 @@ def add_spec_to_struct (struct={}, line="", unit="", desc="", n_chan = 500):
     desc_name = "SPEC_DESC_"+line.upper()
     tpeak_name = "SPEC_TPEAK_"+line.upper()
     rms_name = "SPEC_RMS_"+line.upper()
+
 
     new_struct = copy.copy(struct)
 

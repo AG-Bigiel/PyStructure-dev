@@ -61,6 +61,7 @@ def process_spectra(sources_data,
                     run_success,
                     ref_line_method,
                     SN_processing,
+                    mom_thresh = 3,
                     just_source = None
                     ):
     """
@@ -140,12 +141,12 @@ def process_spectra(sources_data,
                 this_data = add_band_to_struct(struct = this_data, \
                                            band = line_name,\
                                            unit = 'K km/s', \
-                                           desc = line_name + ' Shuffled by CO 2-1')
+                                           desc = line_name + ' Shuffled by '+ref_line)
 
             this_data = add_spec_to_struct(struct= this_data, \
                                            line = "SHUFF"+line_name,\
                                            unit = "K",\
-                                           desc = line_name + ' Shuffled by CO 2-1',\
+                                           desc = line_name + ' Shuffled by '+ref_line,\
                                            n_chan = n_chan_new)
 
 
@@ -171,49 +172,28 @@ def process_spectra(sources_data,
                                     zero = 0.0,\
                                     new_vaxis = this_vaxis, \
                                     interp = 0)
-
-            #Derive the mean Intensity
-            
-            """
-            this_rms = np.zeros(n_pts)*np.nan
-
-            for m in range(n_pts):
-                if np.nansum(this_spec[m,:]!=0, axis = None)>=1:
-
-                    this_rms[m] = mad_std(\
-                    this_spec[m,:][np.where(np.logical_and(\
-                    shuffled_mask[m,:]==0, this_spec[m,:]!=0))], ignore_nan=True)
-
-            this_ii = np.nansum(this_spec*shuffled_mask, axis = 1)*\
-                      abs(this_vaxis[1] - this_vaxis[0])
-
-            this_uc = np.maximum(np.ones(len(np.nansum(shuffled_mask, axis = 1))),\
-                      (np.sqrt(np.nansum(shuffled_mask, axis = 1))))*this_rms*\
-                      abs(this_vaxis[1] - this_vaxis[0])
-
-            this_tpeak = np.nanmax(this_spec*shuffled_mask, axis = 1)
-            """
-            
+                        
             #compute moment_maps
-            mom_maps = get_mom_maps(this_spec, shuffled_mask,this_vaxis)
+            mom_maps = get_mom_maps(this_spec, shuffled_mask,this_vaxis, mom_thresh)
 
             # Save in structure
-
             if lines_data["band_ext"].isnull()[jj]:
 
                 tag_ii = "INT_VAL_"+line_name
                 tag_uc = "INT_UC_" + line_name
-                tag_tpeak = "SPEC_TPEAK_" + line_name
-                tag_rms = "SPEC_RMS_" + line_name
                 
-                tag_mom1 = "SPEC_MOM1_" + line_name
-                tag_mom1_err = "SPEC_EMOM1_" + line_name
+                tag_tpeak = "INT_TPEAK_" + line_name
+                tag_rms = "INT_RMS_" + line_name
                 
-                tag_mom2 = "SPEC_MOM2_" + line_name
-                tag_mom2_err = "SPEC_EMOM2_" + line_name
+                tag_mom1 = "INT_MOM1_" + line_name
+                tag_mom1_err = "INT_EMOM1_" + line_name
                 
-                tag_ew = "SPEC_EW_" + line_name
-                tag_ew_err = "SPEC_EEW_" + line_name
+                #Note that Mom2 corresponds to a FWHM
+                tag_mom2 = "INT_MOM2_" + line_name
+                tag_mom2_err = "INT_EMOM2_" + line_name
+                
+                tag_ew = "INT_EW_" + line_name
+                tag_ew_err = "INT_EEW_" + line_name
                 
                 # store the different calculations
                 this_data[tag_ii] = mom_maps["mom0"]
@@ -228,6 +208,13 @@ def process_spectra(sources_data,
                 this_data[tag_ew] = mom_maps["ew"]
                 this_data[tag_ew_err] = mom_maps["ew_err"]
                 
+                #-------------------------------------------------
+                #!!!!!!!! Will be depricated in future update!!!!!
+                tag_tpeak_dep = "SPEC_TPEAK_" + line_name
+                tag_rms_dep = "SPEC_RMS_" + line_name
+                this_data[tag_tpeak_dep] = mom_maps["tpeak"]
+                this_data[tag_rms_dep] = mom_maps["rms"]
+                #-------------------------------------------------
             else:
                 print("[INFO]\t Intensity Map for "+lines_data["line_name"][jj]+"already provided, skipping." )
 

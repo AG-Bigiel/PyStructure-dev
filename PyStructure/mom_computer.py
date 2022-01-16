@@ -29,6 +29,7 @@ def get_mom_maps(spec_cube, mask, vaxis, SNthresh = 3):
     mom_maps["mom1"]= np.zeros(n_pts)*np.nan
     mom_maps["mom1_err"]= np.zeros(n_pts)*np.nan
     
+    #Note: We will convert the mathematical mom2 term to FWHM
     mom_maps["mom2"] = np.zeros(n_pts)*np.nan
     mom_maps["mom2_err"]= np.zeros(n_pts)*np.nan
     
@@ -66,6 +67,7 @@ def get_mom_maps(spec_cube, mask, vaxis, SNthresh = 3):
                 mom_maps["mom1_err"][m] = (numer/sum_T**2)**0.5
     
                 #mom2----------------------------------------------------------------
+                #Note: We convert the mathematical mom2 term to FWHM
                 mom2 = np.nansum(spec_cube[m,:]*masked*(vaxis-mom_maps["mom1"][m])**2) / np.nansum(spec_cube[m,:]*masked)
                 mom_maps["mom2"][m] = np.sqrt(8*np.log(2))*np.sqrt(mom2)
                 

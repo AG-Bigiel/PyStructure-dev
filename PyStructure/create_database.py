@@ -28,6 +28,7 @@ MODIFICATION HISTORY
     
     - v1.2.2 January 2022
             - Implement Moment 1, Moment 2 and EW calculation
+            - Restructured INT and SPEC keys (Mom maps now in INT keys)
 
 """
 __author__ = "J. den Brok"
@@ -52,6 +53,7 @@ from deproject import *
 from twod_header import *
 from making_axes import *
 from processing_spec import *
+from message_list import *
 
 #----------------------------------------------------------------------
 # Change these lines of code with correct directory and names
@@ -103,6 +105,9 @@ ref_line = "first"
 
 #define upper and lower mask threshold (S/N)
 SN_processing = [2,4]
+
+#define SN threshold for Mom1, Mom2 and EW calculation (for individual lines)
+mom_thresh = 3
 #---------------------------------------------------------------
 
 
@@ -534,7 +539,8 @@ def create_database(just_source=None, quiet=False):
                     [NAXIS_shuff, CDELT_SHUFF],
                     run_success,
                     ref_line,
-                    SN_processing)
+                    SN_processing,
+                    mom_thresh)
 
 
     return run_success
@@ -543,5 +549,7 @@ run_success = create_database()
 
 if all(run_success):
     print("[INFO]\t Run finished succesfully")
+    print_warning(0)
 else:
     print("[WARNING]\t Run Terminated with potential critical error!")
+
