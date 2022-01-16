@@ -112,7 +112,7 @@ mom_thresh = 3
 # math: use mathematical definition
 # sqrt: take square-root of mom2
 # fwhm: convert sqrt(mom2) to fwhm
-mom2_method = "sqrt"
+mom2_method = "fwhm"
 
 #---------------------------------------------------------------
 
