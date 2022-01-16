@@ -108,6 +108,12 @@ SN_processing = [2,4]
 
 #define SN threshold for Mom1, Mom2 and EW calculation (for individual lines)
 mom_thresh = 3
+#differentiate between "fwhm", "sqrt", or "math"
+# math: use mathematical definition
+# sqrt: take square-root of mom2
+# fwhm: convert sqrt(mom2) to fwhm
+mom2_method = "sqrt"
+
 #---------------------------------------------------------------
 
 
@@ -540,7 +546,7 @@ def create_database(just_source=None, quiet=False):
                     run_success,
                     ref_line,
                     SN_processing,
-                    mom_thresh)
+                    [mom_thresh,mom2_method])
 
 
     return run_success

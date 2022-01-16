@@ -6,7 +6,7 @@ from astropy.stats import median_absolute_deviation, mad_std
 
 
 
-def get_mom_maps(spec_cube, mask, vaxis, SNthresh = 3):
+def get_mom_maps(spec_cube, mask, vaxis, mom_calc =[3, "fwhm"]):
     """
     Function to compute moment maps
     """
@@ -18,6 +18,13 @@ def get_mom_maps(spec_cube, mask, vaxis, SNthresh = 3):
     n_chan = dim_sz[1]
     delta_v = abs(vaxis[0]-vaxis[1])
     
+    SNthresh = mom_calc[0]
+    mom2_method = mom_calc[1]
+    #check if we do fwhm or not for mom2
+    fac_mom2 = 1
+    if mom2_method in ["fwhm"]:
+        #factor to convert sqrt(mom2) into fwhm
+        fac_mom2 = np.sqrt(8*np.log(2))
     #first we iterate over the individual spectra:
                 
     mom_maps["rms"] = np.zeros(n_pts)*np.nan
@@ -69,13 +76,19 @@ def get_mom_maps(spec_cube, mask, vaxis, SNthresh = 3):
                 #mom2----------------------------------------------------------------
                 #Note: We convert the mathematical mom2 term to FWHM
                 mom2 = np.nansum(spec_cube[m,:]*masked*(vaxis-mom_maps["mom1"][m])**2) / np.nansum(spec_cube[m,:]*masked)
-                mom_maps["mom2"][m] = np.sqrt(8*np.log(2))*np.sqrt(mom2)
                 
-                numer = mom_maps["rms"][m]**2*np.nansum((masked*(vaxis-mom_maps["mom1"][m])**2-mom_maps["mom2"][m]**2)**2)
+                
+                numer = mom_maps["rms"][m]**2*np.nansum((masked*(vaxis-mom_maps["mom1"][m])**2-mom2**2)**2)
                 mom2_err = (numer/sum_T**2)**0.25
                 
-                #convert mom2 to FWHM (km/s)
-                mom_maps["mom2_err"][m] = np.sqrt(8*np.log(2))*mom2_err/np.sqrt(mom2)/2
+                #default: convert mom2 to FWHM (km/s)
+                if fac_mom2 in ["math"]:
+                    #use mathematical definition (units are ([L]/[T])^2)
+                    mom_maps["mom2"][m] = mom2
+                    mom_maps["mom2_err"][m] = mom2_err
+                else:
+                    mom_maps["mom2"][m] = fac_mom2*np.sqrt(mom2)
+                    mom_maps["mom2_err"][m] = fac_mom2*mom2_err/np.sqrt(mom2)/2
 
                 #ew--------------------------------------------------------------------
                 mom_maps["ew"][m] = np.nansum(spec_cube[m,:]*masked)*delta_v / np.nanmax(spec_cube[m,:]*masked) / np.sqrt(2 * np.pi)

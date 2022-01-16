@@ -61,7 +61,7 @@ def process_spectra(sources_data,
                     run_success,
                     ref_line_method,
                     SN_processing,
-                    mom_thresh = 3,
+                    mom_calc = [3, "fwhm"],
                     just_source = None
                     ):
     """
@@ -174,7 +174,7 @@ def process_spectra(sources_data,
                                     interp = 0)
                         
             #compute moment_maps
-            mom_maps = get_mom_maps(this_spec, shuffled_mask,this_vaxis, mom_thresh)
+            mom_maps = get_mom_maps(this_spec, shuffled_mask,this_vaxis, mom_calc)
 
             # Save in structure
             if lines_data["band_ext"].isnull()[jj]:
