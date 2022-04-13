@@ -307,10 +307,10 @@ def get_stack(galaxy,prior_lines,lines, dir_save, dir_data ='./../../data/Databa
             rms_line = median_absolute_deviation(spec_to_integrate[np.where(spec_to_integrate<3*rms_line)],ignore_nan=True)
             std_line = mad_std(spec_to_integrate[np.where(spec_to_integrate<3*rms_line)], axis = None,ignore_nan=True)
             line_ii = np.nansum(spec_to_integrate*mask)*abs(v[1]-v[0])
-            line_uc = max([1, np.sqrt(np.nansum(mask))])*rms_line*abs(v[1]-v[0])
+            line_uc = max([1, np.sqrt(np.nansum(mask))])*std_line*abs(v[1]-v[0])
 
             # Fill in dictionary
-            stack["rms_K_"+line][j] = rms_line
+            stack["rms_K_"+line][j] = std_line
             stack["peak_K_"+line][j] = np.nanmax(spec_to_integrate*mask)
 
             stack["ii_K_kms_"+line][j] = line_ii
