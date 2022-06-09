@@ -190,7 +190,12 @@ def shuffle(spec,
                 this_zero = zero
         # Recenter the current spectrum (this may be trivial for regridding)
         this_vaxis = vaxis - this_zero
-
+        
+        #check that both vaxis are increasing or decreasing. If one delta v increasing and other decressing, we flip the input spectrum and vaxis
+        if orig_deltav/new_deltav<0:
+            this_vaxis = np.flip(this_vaxis)
+            this_spec = np.flip(this_spec)
+            
         # Check overlap of the recentered spectrum
         max_this_vaxis = max(this_vaxis)
         min_this_vaxis = min(this_vaxis)
