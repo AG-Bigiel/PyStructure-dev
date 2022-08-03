@@ -34,6 +34,8 @@ MODIFICATION HISTORY
             - Implemented config file: You can run the PyStructure using a single config file
     - v2.0.1. January 2022
             - Automatically determine the max radius for the sampling points
+    - v2.1.0. July 2022
+            - Include Spectral Smooting and Convolving for data with significantly different spectral resolution.
 
 """
 __author__ = "J. den Brok"
@@ -125,6 +127,24 @@ mom_thresh = 3
 # fwhm: convert sqrt(mom2) to fwhm
 mom2_method = "fwhm"
 
+
+"""
+Spectral smoothing
+
+"default": Do not perform any spectral smoothing
+"overlay": Perform spectral smoothing to spectral resolution of overlay cube
+n: float – convolve to spectral resolution n [km/s]
+"""
+spec_smooth = "default"
+
+"""
+define the way the spectral smoothing should be performed:
+"binned": binn channels together (to nearest integer of ratio theta_target/theta_nat)
+"gauss": perform convolution with gaussian kernel (theta_target^2-theta_nat^2)**0.5
+!!!! Warning, gaussian smoothing seems to systematicaly underestimate the rms by 10-15%
+"combined": do the binned smoothing first (to nearest integer ratio) and then the rest via Gauss
+"""
+spec_smooth_method = "binned"
 #---------------------------------------------------------------
 
 
@@ -308,7 +328,8 @@ def create_database(just_source=None, quiet=False, conf=False):
 
 
         ov_cube,ov_hdr = fits.getdata(overlay_fname, header = True)
-
+        
+       
         #check, that cube is not 4D
         if ov_hdr["NAXIS"]==4:
             run_success[ii]=False
@@ -396,7 +417,7 @@ def create_database(just_source=None, quiet=False, conf=False):
                 perbeam = True
             else:
                 perbeam = False
-            this_int = sample_at_res(in_data=this_band_file,
+            this_int, this_hdr = sample_at_res(in_data=this_band_file,
                                      ra_samp = samp_ra,
                                      dec_samp = samp_dec,
                                      target_res_as = target_res_as,
@@ -438,7 +459,7 @@ def create_database(just_source=None, quiet=False, conf=False):
             print('[INFO]\t Sampling at resolution band '+bands["band_name"][jj]
                    +' for '+this_source)
 
-            this_uc = sample_at_res(in_data = this_uc_file,
+            this_uc, this_hdr = sample_at_res(in_data = this_uc_file,
                                     ra_samp = samp_ra,
                                     dec_samp = samp_dec,
                                     target_res_as = target_res_as,
@@ -474,7 +495,7 @@ def create_database(just_source=None, quiet=False, conf=False):
                 perbeam = True
             else:
                 perbeam = False
-            this_spec = sample_at_res(in_data = this_line_file,
+            this_spec, this_hdr = sample_at_res(in_data = this_line_file,
                                       ra_samp = samp_ra,
                                       dec_samp = samp_dec,
                                       target_res_as = target_res_as,
@@ -483,7 +504,8 @@ def create_database(just_source=None, quiet=False, conf=False):
                                       galaxy =this_source,
                                       path_save_fits = data_dir,
                                       save_fits = save_fits,
-                                      perbeam = perbeam)
+                                      perbeam = perbeam,
+                                      spec_smooth = [spec_smooth,spec_smooth_method])
 
 
 
@@ -495,9 +517,9 @@ def create_database(just_source=None, quiet=False, conf=False):
                       " to the database.")
                 continue
 
-            this_line_hdr = fits.getheader(this_line_file)
-
-            this_vaxis = make_axes(this_line_hdr, vonly = True)
+            #this_line_hdr = fits.getheader(this_line_file)
+            
+            this_vaxis = make_axes(this_hdr, vonly = True)
             sz_this_spec = np.shape(this_spec)
             n_chan = sz_this_spec[1]
 
@@ -509,14 +531,14 @@ def create_database(just_source=None, quiet=False, conf=False):
 
             this_tag_name = 'SPEC_VCHAN0_'+cubes["line_name"][jj].upper()
             if this_tag_name in this_data:
-                this_data[this_tag_name] = this_vaxis_ov[0]
+                this_data[this_tag_name] = this_hdr[0]
             else:
                 print("[ERROR]\t  I had trouble matching tag "+this_tag_name+
                       " to the database.")
                 continue
             this_tag_name = 'SPEC_DELTAV_'+cubes["line_name"][jj].upper()
             if this_tag_name in this_data:
-                this_data[this_tag_name] = this_vaxis_ov[1]-this_vaxis_ov[0]
+                this_data[this_tag_name] = this_hdr[1]-this_hdr[0]
             else:
                 print("[ERROR]\t  I had trouble matching tag "+this_tag_name+
                       " to the database.")
@@ -538,7 +560,7 @@ def create_database(just_source=None, quiet=False, conf=False):
                     continue
 
 
-                this_int = sample_at_res(in_data=this_band_file,
+                this_int, this_hdr = sample_at_res(in_data=this_band_file,
                                          ra_samp = samp_ra,
                                          dec_samp = samp_dec,
                                          target_res_as = target_res_as,
@@ -568,7 +590,7 @@ def create_database(just_source=None, quiet=False, conf=False):
                 print('[INFO]\t Sampling at resolution band '+cubes["line_name"][jj]
                        +' for '+this_source)
 
-                this_uc = sample_at_res(in_data = this_uc_file,
+                this_uc, this_hdr = sample_at_res(in_data = this_uc_file,
                                         ra_samp = samp_ra,
                                         dec_samp = samp_dec,
                                         target_res_as = target_res_as,

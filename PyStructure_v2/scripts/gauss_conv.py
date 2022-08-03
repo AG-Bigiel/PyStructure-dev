@@ -132,7 +132,7 @@ def conv_with_gauss(in_data,
     ;     - caught asymmetric kernel bug - dec 14
     ;
     ; Jakob den Brok:
-    ;      - Oct 2021: Translated to IDL routine to Python
+    ;      - Oct 2020: Translated to IDL routine to Python
     ;      - Mar 2021: Cleaned and get rid of IDL syntax leftovers
     :
     ;-

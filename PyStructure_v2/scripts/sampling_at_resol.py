@@ -16,8 +16,16 @@ from twod_header import *
 import radio_beam
 import warnings
 warnings.filterwarnings("ignore")
+from astropy.convolution import Gaussian1DKernel, Box1DKernel, convolve
 
 from gauss_conv import *
+
+
+def get_vaxis(hdr):
+    v = np.arange(hdr["NAXIS3"])
+    vdif = v-(hdr["CRPIX3"]-1)
+    vaxis = vdif * hdr["CDELT3"] + hdr["CRVAL3"]
+    return vaxis
 
 def sample_at_res(in_data,
                   ra_samp,
@@ -33,7 +41,8 @@ def sample_at_res(in_data,
                   galaxy = "",
                   save_fits = False,
                   path_save_fits = "",
-                  perbeam = False):
+                  perbeam = False,
+                  spec_smooth = ["default","binned"]):
 
     """
     Function to sample the data and convolve
@@ -111,19 +120,87 @@ def sample_at_res(in_data,
 
     rms = median_absolute_deviation(data, axis = None,ignore_nan=True)
 
-
+    #perform spectral smooting, if needed
+    if spec_smooth[0] in ["overlay"]:
+        spec_smooth[0] = target_hdr["CDELT3"]/1000
+    if type(spec_smooth[0]) == int or type(spec_smooth[0]) == float:
+        spec_res = hdr["CDELT3"]/1000
+        fwhm_factor = np.sqrt(8*np.log(2))
+        if spec_res >=spec_smooth[0]:
+            print("[INFO]\t No spectral smoothing; already at target resolution.")
+        else:
+            print("[INFO]\t Do spectral smoothing to {} km/s".format(spec_smooth[0]))
+            
+            
+            #check the method:
+            #
+            # Gauss method:
+            if spec_smooth[1] in ["gauss"]:
+                pix = ((spec_smooth[0]**2 - spec_res**2)**0.5  / spec_res)/fwhm_factor
+                kernel = Gaussian1DKernel(pix)
+            
+                data_new = copy.deepcopy(data)
+                for spec_n in ProgressBar(range(dim_data[1]*dim_data[2])):
+                    y = spec_n%dim_data[1]
+                    x = spec_n//dim_data[1]
+                    data_new[:,y,x] = convolve(data[:, y,x],kernel)
+          
+                
+            # Binning method
+            elif spec_smooth[1] in ["binned", "combined"]:
+                vaxis_native = get_vaxis(hdr_out)
+                
+                n_ratio = int(np.round(spec_smooth[0]/spec_res))
+                new_len = len(vaxis_native)//n_ratio
+                
+                if n_ratio==1:
+                    print("[INFO]\t No spectral smoothing; already at target resolution.")
+                else:
+                    new_vaxis = np.array([np.nanmean(vaxis_native[n_ratio*j:n_ratio*(j+1)]) for j in range(new_len)])
+                    data_new = np.array([np.nanmean(data[n_ratio*j:n_ratio*(j+1),:,:], axis=0) for j in range(new_len)])
+                 
+                    hdr_out["NAXIS3"] = new_len
+                    hdr_out["CDELT3"] = new_vaxis[1]-new_vaxis[0]
+                    hdr_out["CRVAL3"] = new_vaxis[0] + (hdr_out["CRPIX3"]-1)*hdr_out["CDELT3"]
+                
+                if spec_smooth[1] in ["combined"]:
+                    print(n_ratio*spec_res)
+                    if n_ratio*spec_res<spec_smooth[0]:
+                        pix = ((spec_smooth[0]**2 - (n_ratio*spec_res)**2)**0.5  / spec_res)/fwhm_factor
+                        kernel = Gaussian1DKernel(pix)
+            
+                    
+                        for spec_n in ProgressBar(range(dim_data[1]*dim_data[2])):
+                            y = spec_n%dim_data[1]
+                            x = spec_n//dim_data[1]
+                            data_new[:,y,x] = convolve(data_new[:, y,x],kernel)
+                   
+            data = data_new
+            
     # Align, if needed
 
     
     if not target_hdr is None:
-    
-        wcs_target = WCS(target_hdr)
-        data_out, footprint = reproject_interp((data,hdr_out), target_hdr)
+        #check if we are spectrally smoothing. If so, prep the target_hdr to the right spectral number
+        trg_hdr = copy.deepcopy(target_hdr)
+        if not spec_smooth[0] in ["default"]:
+            
+            #check if we need to spectrally change the target resolution
+            if spec_smooth[0] > trg_hdr["CDELT3"]/1000:
+                vaxis_ov = get_vaxis(trg_hdr)
+                new_vaxis = np.arange(vaxis_ov[0], vaxis_ov[-1],spec_smooth[0]*1000)
+                
+                trg_hdr["NAXIS3"] = len(new_vaxis)
+                trg_hdr["CDELT3"] = spec_smooth[0]*1000
+                trg_hdr["CRVAL3"] = new_vaxis[0] + (trg_hdr["CRPIX3"]-1)*trg_hdr["CDELT3"]
+            
+        wcs_target = WCS(trg_hdr)
+        data_out, footprint = reproject_interp((data,hdr_out), trg_hdr)
         data = data_out
         
         # Save the convloved file as a fits file
         if save_fits:
-            out_header = copy.copy(target_hdr)
+            out_header = copy.copy(trg_hdr)
             out_header["BMAJ"]=target_res_as/3600
             out_header["BMIN"]=target_res_as/3600
             out_header["LINE"]=line_name
@@ -136,7 +213,7 @@ def sample_at_res(in_data,
     #--------------------------------------------------------------
     #   Sample
     #------------------------------------------------------------
-    wcs_target = WCS(target_hdr)
+    wcs_target = WCS(trg_hdr)
     if is_cube:
         pixel_coords = wcs_target.all_world2pix(np.column_stack((ra_samp, dec_samp, np.zeros(len(dec_samp)))),0)
     else:
@@ -182,4 +259,4 @@ def sample_at_res(in_data,
     #   Return
     #------------------------------------------------------------
 
-    return result
+    return result, trg_hdr
