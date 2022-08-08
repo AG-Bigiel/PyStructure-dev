@@ -120,11 +120,46 @@ def sample_at_res(in_data,
 
     rms = median_absolute_deviation(data, axis = None,ignore_nan=True)
 
+
+    ######
+    # Check that velocity axis is in m/s, not km/s
+    ######
+    if is_cube:
+        if abs(target_hdr["CDELT3"])<200:
+            print("[WARNING]\t Overlay Cube in km/s, converting to m/s.")
+            target_hdr["CDELT3"] = 1000 * target_hdr["CDELT3"]
+            target_hdr["CRVAL3"] = 1000 * target_hdr["CRVAL3"]
+            target_hdr["CUNIT3"] = "m/s"
+            
+        if abs(hdr["CDELT3"])<200:
+            print("[WARNING]\t Line Cube in km/s, converting to m/s.")
+            hdr["CDELT3"] = 1000 * hdr["CDELT3"]
+            hdr["CRVAL3"] = 1000 * hdr["CRVAL3"]
+            hdr["CUNIT3"] = "m/s"
+        
+        #check if cube vaxis is inverted (want delta v>0):
+        if target_hdr["CDELT3"]<0:
+            print("[WARNING]\t Target Cube has invertied vaxis. Re-inverting...")
+            vaxis_inv = get_vaxis(target_hdr)
+            target_hdr["CDELT3"] = -1* target_hdr["CDELT3"]
+            target_hdr["CRPIX3"] = 1
+            target_hdr["CRVAL3"] = vaxis_inv[-1]
+            
+        if hdr["CDELT3"]<0:
+            print("[WARNING]\t Line Cube has invertied vaxis. Re-inverting...")
+            vaxis_inv = get_vaxis(hdr)
+            hdr["CDELT3"] = -1* hdr["CDELT3"]
+            hdr["CRPIX3"] = 1
+            hdr["CRVAL3"] = vaxis_inv[-1]
+            
+            #flip the cube
+            data = np.flip(data, axis=0)
+            
     #perform spectral smooting, if needed
     if spec_smooth[0] in ["overlay"]:
-        spec_smooth[0] = target_hdr["CDELT3"]/1000
+        spec_smooth[0] = abs(target_hdr["CDELT3"])/1000
     if type(spec_smooth[0]) == int or type(spec_smooth[0]) == float:
-        spec_res = hdr["CDELT3"]/1000
+        spec_res = abs(hdr["CDELT3"])/1000
         fwhm_factor = np.sqrt(8*np.log(2))
         if spec_res >=spec_smooth[0]:
             print("[INFO]\t No spectral smoothing; already at target resolution.")
@@ -150,9 +185,12 @@ def sample_at_res(in_data,
             elif spec_smooth[1] in ["binned", "combined"]:
                 vaxis_native = get_vaxis(hdr_out)
                 
-                n_ratio = int(np.round(spec_smooth[0]/spec_res))
-                new_len = len(vaxis_native)//n_ratio
+                n_ratio = int(spec_smooth[0]/spec_res)
                 
+                #smooth, if remainder of target/res is almost 90%
+                if (spec_smooth[0]/spec_res-n_ratio)>0.9:
+                    n_ratio+=1
+                new_len = len(vaxis_native)//n_ratio
                 if n_ratio==1:
                     print("[INFO]\t No spectral smoothing; already at target resolution.")
                 else:
