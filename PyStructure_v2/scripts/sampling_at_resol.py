@@ -126,27 +126,27 @@ def sample_at_res(in_data,
     ######
     if is_cube:
         if abs(target_hdr["CDELT3"])<200:
-            print("[WARNING]\t Overlay Cube in km/s, converting to m/s.")
+            print("[INFO]\t Overlay Cube in km/s, converting to m/s.")
             target_hdr["CDELT3"] = 1000 * target_hdr["CDELT3"]
             target_hdr["CRVAL3"] = 1000 * target_hdr["CRVAL3"]
             target_hdr["CUNIT3"] = "m/s"
             
         if abs(hdr["CDELT3"])<200:
-            print("[WARNING]\t Line Cube in km/s, converting to m/s.")
+            print("[INFO]\t Line Cube in km/s, converting to m/s.")
             hdr["CDELT3"] = 1000 * hdr["CDELT3"]
             hdr["CRVAL3"] = 1000 * hdr["CRVAL3"]
             hdr["CUNIT3"] = "m/s"
         
         #check if cube vaxis is inverted (want delta v>0):
         if target_hdr["CDELT3"]<0:
-            print("[WARNING]\t Target Cube has invertied vaxis. Re-inverting...")
+            print("[INFO]\t Target Cube has invertied vaxis. Re-inverting...")
             vaxis_inv = get_vaxis(target_hdr)
             target_hdr["CDELT3"] = -1* target_hdr["CDELT3"]
             target_hdr["CRPIX3"] = 1
             target_hdr["CRVAL3"] = vaxis_inv[-1]
             
         if hdr["CDELT3"]<0:
-            print("[WARNING]\t Line Cube has invertied vaxis. Re-inverting...")
+            print("[INFO]\t Line Cube has invertied vaxis. Re-inverting...")
             vaxis_inv = get_vaxis(hdr)
             hdr["CDELT3"] = -1* hdr["CDELT3"]
             hdr["CRPIX3"] = 1

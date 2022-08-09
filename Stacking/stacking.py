@@ -93,8 +93,7 @@ def get_stack(galaxy,prior_lines,lines, dir_save, dir_data ='./../../data/Databa
         if xtype == 'rad':
             xvec = this_data["rgal_kpc"]
         elif xtype == 'sfr':
-            path_sfr = dir_data+galaxy+"_sig_SFR_31as.txt"
-            xvec = np.loadtxt(path_sfr)
+            xvec = np.log10(this_data["INT_VAL_SFR"])
         elif xtype == '12co21':
             xvec = this_data["INT_VAL_12CO21"]
         elif xtype == '12co10':

@@ -49,9 +49,9 @@ def get_mom_maps(spec_cube, mask, vaxis, mom_calc =[3, "fwhm"]):
         #skip if spectrum is empty
         if np.nansum(spec_cube[m,:]!=0, axis = None)>=1:
             #compute rms of spectrum
-            mom_maps["rms"][m] = mad_std(\
+            mom_maps["rms"][m] = np.nanstd(\
             spec_cube[m,:][np.where(np.logical_and(\
-                mask[m,:]==0, spec_cube[m,:]!=0))], ignore_nan=True)
+                mask[m,:]==0, spec_cube[m,:]!=0))])
             mom_maps["tpeak"][m] = np.nanmax(spec_cube[m,:]*mask[m,:], axis = 0)
             
             mom_maps["mom0"][m] = np.nansum(spec_cube[m,:]*mask[m,:], axis = 0)*delta_v
