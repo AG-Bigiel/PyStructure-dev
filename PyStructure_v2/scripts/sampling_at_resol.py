@@ -174,11 +174,11 @@ def sample_at_res(in_data,
                 pix = ((spec_smooth[0]**2 - spec_res**2)**0.5  / spec_res)/fwhm_factor
                 kernel = Gaussian1DKernel(pix)
             
-                data_new = copy.deepcopy(data)
+                
                 for spec_n in ProgressBar(range(dim_data[1]*dim_data[2])):
                     y = spec_n%dim_data[1]
                     x = spec_n//dim_data[1]
-                    data_new[:,y,x] = convolve(data[:, y,x],kernel)
+                    data[:,y,x] = convolve(data[:, y,x],kernel)
           
                 
             # Binning method
@@ -195,7 +195,7 @@ def sample_at_res(in_data,
                     print("[INFO]\t No spectral smoothing; already at target resolution.")
                 else:
                     new_vaxis = np.array([np.nanmean(vaxis_native[n_ratio*j:n_ratio*(j+1)]) for j in range(new_len)])
-                    data_new = np.array([np.nanmean(data[n_ratio*j:n_ratio*(j+1),:,:], axis=0) for j in range(new_len)])
+                    data = np.array([np.nanmean(data[n_ratio*j:n_ratio*(j+1),:,:], axis=0) for j in range(new_len)])
                  
                     hdr_out["NAXIS3"] = new_len
                     hdr_out["CDELT3"] = new_vaxis[1]-new_vaxis[0]
@@ -211,9 +211,9 @@ def sample_at_res(in_data,
                         for spec_n in ProgressBar(range(dim_data[1]*dim_data[2])):
                             y = spec_n%dim_data[1]
                             x = spec_n//dim_data[1]
-                            data_new[:,y,x] = convolve(data_new[:, y,x],kernel)
+                            data[:,y,x] = convolve(data[:, y,x],kernel)
                    
-            data = data_new
+            
             
     # Align, if needed
 
