@@ -5,6 +5,7 @@ import numpy as np
 from astropy.wcs import WCS
 from scipy.interpolate import griddata
 from astropy.io import fits
+import copy
 
 def sample_to_hdr(in_data,  # input data on hexagonal grid (ra_samp, dec_samp)
                   ra_samp,  # right ascension of hexagonal pixels
@@ -48,6 +49,7 @@ def sample_to_hdr(in_data,  # input data on hexagonal grid (ra_samp, dec_samp)
 def save_to_fits(ra,
                  dec,
                  hdr_in,
+                 ov_slice,
                  key,
                  filename,
                  this_source,
@@ -55,10 +57,15 @@ def save_to_fits(ra,
                  line,
                  folder="./saved_FITS_files/"):
 
-    map_cartesian = sample_to_hdr(this_data["INT_"+key+"_"+line.upper()],
+    data_in = copy.deepcopy(this_data["INT_"+key+"_"+line.upper()])
+    
+    map_cartesian = sample_to_hdr(data_in,
                                            ra,
                                            dec,
                                            hdr_in)
+    #make edges to nan
+    map_cartesian = ov_slice*map_cartesian
+    
     fits.writeto(folder+this_source+"_"+line+"_"+filename+".fits", data =map_cartesian, header =  hdr_in, overwrite=True)
     
     
@@ -68,7 +75,7 @@ def save_mom_to_fits(fname,
                      lines_data,
                      source_list,
                      run_success,
-                     target_hdr_list, folder):
+                     target_hdr_list, target_slice_list, folder):
     """
     Function to prepare and convert the moment maps created on a hexagonal grid onto a cartesian one
     and save as FITS file
@@ -96,19 +103,21 @@ def save_mom_to_fits(fname,
         ra_deg = this_data["ra_deg"]
         dec_deg = this_data["dec_deg"]
         
+        target_slice = target_slice_list[ii]
+        target_slice[np.isfinite(target_slice)]=1
         
         for line in lines_data["line_name"]:
             #iterate over the moment maps
             #mom0:
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"VAL","mom0",this_source,this_data,line,folder)
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"UC","emom0",this_source,this_data,line,folder)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"VAL","mom0",this_source,this_data,line,folder)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"UC","emom0",this_source,this_data,line,folder)
             
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"MOM1","mom1",this_source,this_data,line,folder)
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"EMOM1","emom1",this_source,this_data,line,folder)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"MOM1","mom1",this_source,this_data,line,folder)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"EMOM1","emom1",this_source,this_data,line,folder)
             
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"MOM2","mom2",this_source,this_data,line,folder)
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"EMOM2","emom2",this_source,this_data,line,folder)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"MOM2","mom2",this_source,this_data,line,folder)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"EMOM2","emom2",this_source,this_data,line,folder)
             
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"TPEAK","tpeak",this_source,this_data,line,folder)
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"RMS","rms",this_source,this_data,line,folder)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"TPEAK","tpeak",this_source,this_data,line,folder)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"RMS","rms",this_source,this_data,line,folder)
             

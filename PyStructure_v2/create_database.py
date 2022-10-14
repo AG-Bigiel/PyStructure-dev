@@ -292,6 +292,7 @@ def create_database(just_source=None, quiet=False, conf=False):
     run_success = [True]*n_sources #keep track if run succesfull for each galaxy
     fnames=[""]*n_sources   #filename save for galaxy
     overlay_hdr_list = []
+    overlay_slice_list = []
     
     for ii in range(n_sources):
         #if config file provided, use the list of galaxies provided therein
@@ -336,6 +337,7 @@ def create_database(just_source=None, quiet=False, conf=False):
 
             print("[ERROR]\t No Overlay data found. Skipping "+this_source+". Check path to overlay file.")
             overlay_hdr_list.append("")
+            overlay_slice_list.append("")
             continue
 
 
@@ -346,8 +348,13 @@ def create_database(just_source=None, quiet=False, conf=False):
         if ov_hdr["NAXIS"]==4:
             run_success[ii]=False
             overlay_hdr_list.append("")
+            overlay_slice_list.append("")
             print("[ERROR]\t 4D cube provided. Need 3D overlay. Skipping "+this_source)
             continue
+            
+        #add slice of overlay
+        overlay_slice_list.append(ov_cube[ov_hdr["NAXIS3"]//2,:,:])
+        
         this_vaxis_ov = make_axes(ov_hdr, vonly = True)
         #mask = total(finite(hcn_cube),3) ge 1
         mask = np.sum(np.isfinite(ov_cube), axis = 0)>=1
@@ -661,6 +668,7 @@ def create_database(just_source=None, quiet=False, conf=False):
                          galaxy_list,
                          run_success,
                          overlay_hdr_list,
+                         overlay_slice_list,
                          folder_savefits)
     
     return run_success
