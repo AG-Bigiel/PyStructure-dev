@@ -155,7 +155,7 @@ Save the created moment maps as fits file
 save_mom_maps = False
 
 #folder to save fits files in
-folder_savefits"./saved_FITS_files/"
+folder_savefits="./saved_FITS_files/"
 #---------------------------------------------------------------
 
 
