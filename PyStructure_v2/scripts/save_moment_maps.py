@@ -109,6 +109,6 @@ def save_mom_to_fits(fname,
             save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"MOM2","mom2",this_source,this_data,line)
             save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"EMOM2","emom2",this_source,this_data,line)
             
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"TPEAK","tpeal",this_source,this_data,line)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"TPEAK","tpeak",this_source,this_data,line)
             save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"RMS","rms",this_source,this_data,line)
             
