@@ -68,7 +68,7 @@ def save_mom_to_fits(fname,
                      lines_data,
                      source_list,
                      run_success,
-                     target_hdr_list):
+                     target_hdr_list, folder):
     """
     Function to prepare and convert the moment maps created on a hexagonal grid onto a cartesian one
     and save as FITS file
@@ -100,15 +100,15 @@ def save_mom_to_fits(fname,
         for line in lines_data["line_name"]:
             #iterate over the moment maps
             #mom0:
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"VAL","mom0",this_source,this_data,line)
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"UC","emom0",this_source,this_data,line)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"VAL","mom0",this_source,this_data,line,folder)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"UC","emom0",this_source,this_data,line,folder)
             
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"MOM1","mom1",this_source,this_data,line)
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"EMOM1","emom1",this_source,this_data,line)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"MOM1","mom1",this_source,this_data,line,folder)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"EMOM1","emom1",this_source,this_data,line,folder)
             
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"MOM2","mom2",this_source,this_data,line)
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"EMOM2","emom2",this_source,this_data,line)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"MOM2","mom2",this_source,this_data,line,folder)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"EMOM2","emom2",this_source,this_data,line,folder)
             
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"TPEAK","tpeak",this_source,this_data,line)
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"RMS","rms",this_source,this_data,line)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"TPEAK","tpeak",this_source,this_data,line,folder)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],"RMS","rms",this_source,this_data,line,folder)
             

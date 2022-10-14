@@ -153,6 +153,9 @@ spec_smooth_method = "binned"
 Save the created moment maps as fits file
 """
 save_mom_maps = False
+
+#folder to save fits files in
+folder_savefits"./saved_FITS_files/"
 #---------------------------------------------------------------
 
 
@@ -646,8 +649,8 @@ def create_database(just_source=None, quiet=False, conf=False):
     #Open the PyStructure and Save as FITS File
     if save_mom_maps:
         #create a folder to save
-        if not os.path.exists("./saved_FITS_files/"):
-            os.makedirs("./saved_FITS_files/")
+        if not os.path.exists(folder_savefits):
+            os.makedirs(folder_savefits)
         # Warning
         if spacing_per_beam < 4:
             print('[WARNING]\t Spacing per beam too small for proper resampling to pixel grid.')
@@ -657,7 +660,8 @@ def create_database(just_source=None, quiet=False, conf=False):
                          cubes,
                          galaxy_list,
                          run_success,
-                         overlay_hdr_list)
+                         overlay_hdr_list,
+                         folder_savefits)
     
     return run_success
 
