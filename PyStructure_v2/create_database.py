@@ -36,12 +36,14 @@ MODIFICATION HISTORY
             - Automatically determine the max radius for the sampling points
     - v2.1.0. July 2022
             - Include Spectral Smooting and Convolving for data with significantly different spectral resolution.
+    - v2.1.1. October 2022
+            - Save moment maps as fits file
 
 """
 __author__ = "J. den Brok"
-__version__ = "v2.0.1"
+__version__ = "v2.1.1"
 __email__ = "jdenbrok@astro.uni-bonn.de"
-__credits__ = ["M. Jimenez-Donaire", "E. Rosolowsky","A. Leroy ", "L. Neumann", "I. Beslic"]
+__credits__ = ["L. Neumann","M. Jimenez-Donaire", "E. Rosolowsky","A. Leroy ", "I. Beslic"]
 
 
 import numpy as np
@@ -65,7 +67,7 @@ from twod_header import *
 from making_axes import *
 from processing_spec import *
 from message_list import *
-
+from save_moment_maps import *
 #----------------------------------------------------------------------
 # Change these lines of code with correct directory and names
 #----------------------------------------------------------------------
@@ -145,6 +147,12 @@ define the way the spectral smoothing should be performed:
 "combined": do the binned smoothing first (to nearest integer ratio) and then the rest via Gauss
 """
 spec_smooth_method = "binned"
+
+
+"""
+Save the created moment maps as fits file
+"""
+save_mom_maps = False
 #---------------------------------------------------------------
 
 
@@ -218,12 +226,12 @@ def create_database(just_source=None, quiet=False, conf=False):
     glxy_data = pd.read_csv(geom_file, sep = "\t",names = names_glxy,
                             comment = "#")
     
-    #define list of galaxies (need to differentiate between conf file input and default)
+    #define list of sources (need to differentiate between conf file input and default)
     if conf:
-        if isinstance(galaxies, tuple):
-            galaxy_list = list(galaxies)
+        if isinstance(sources, tuple):
+            galaxy_list = list(sources)
         else:
-            galaxy_list = [galaxies]
+            galaxy_list = [sources]
         
     else:
         galaxy_list = list(glxy_data["galaxy"])
@@ -280,7 +288,8 @@ def create_database(just_source=None, quiet=False, conf=False):
     #additional parameters
     run_success = [True]*n_sources #keep track if run succesfull for each galaxy
     fnames=[""]*n_sources   #filename save for galaxy
-
+    overlay_hdr_list = []
+    
     for ii in range(n_sources):
         #if config file provided, use the list of galaxies provided therein
         
@@ -323,7 +332,7 @@ def create_database(just_source=None, quiet=False, conf=False):
             run_success[ii]=False
 
             print("[ERROR]\t No Overlay data found. Skipping "+this_source+". Check path to overlay file.")
-
+            overlay_hdr_list.append("")
             continue
 
 
@@ -333,13 +342,14 @@ def create_database(just_source=None, quiet=False, conf=False):
         #check, that cube is not 4D
         if ov_hdr["NAXIS"]==4:
             run_success[ii]=False
+            overlay_hdr_list.append("")
             print("[ERROR]\t 4D cube provided. Need 3D overlay. Skipping "+this_source)
             continue
         this_vaxis_ov = make_axes(ov_hdr, vonly = True)
         #mask = total(finite(hcn_cube),3) ge 1
         mask = np.sum(np.isfinite(ov_cube), axis = 0)>=1
         mask_hdr = twod_head(ov_hdr)
-
+        overlay_hdr_list.append(mask_hdr)
         if resolution == 'native':
             target_res_as = np.max([ov_hdr['BMIN'], ov_hdr['BMAJ']]) * 3600
         elif resolution == 'physical':
@@ -630,9 +640,25 @@ def create_database(just_source=None, quiet=False, conf=False):
                     run_success,
                     ref_line,
                     SN_processing,
-                    [mom_thresh,mom2_method])
+                    [mom_thresh,mom2_method],
+                    )
 
-
+    #Open the PyStructure and Save as FITS File
+    if save_mom_maps:
+        #create a folder to save
+        if not os.path.exists("./saved_FITS_files/"):
+            os.makedirs("./saved_FITS_files/")
+        # Warning
+        if spacing_per_beam < 4:
+            print('[WARNING]\t Spacing per beam too small for proper resampling to pixel grid.')
+    
+        #iterate over the individual sources
+        save_mom_to_fits(fnames,
+                         cubes,
+                         galaxy_list,
+                         run_success,
+                         overlay_hdr_list)
+    
     return run_success
 
 #allow input of config file

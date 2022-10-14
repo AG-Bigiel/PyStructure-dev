@@ -93,7 +93,7 @@ def process_spectra(sources_data,
 
 
         print("----------------------------------")
-        print("Galaxy "+ this_source)
+        print("Source "+ this_source)
         print("----------------------------------")
 
         this_data = np.load(fname[ii],allow_pickle = True).item()
