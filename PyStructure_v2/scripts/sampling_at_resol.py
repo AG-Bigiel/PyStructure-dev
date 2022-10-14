@@ -97,6 +97,8 @@ def sample_at_res(in_data,
     #------------------------------------------------------------
    
     current_bmaj = hdr["BMAJ"]
+    
+    #reduce by 1% to account for rounding
     if current_bmaj < (0.99*target_res_as/3600):
         data, hdr_out = conv_with_gauss(in_data= data, in_hdr = hdr,
                                               target_beam = target_res_as*np.array([1,1,0]),
