@@ -4,6 +4,7 @@ Author: L. Neumann + J. den Brok
 import numpy as np
 from astropy.wcs import WCS
 from scipy.interpolate import griddata
+from reproject import reproject_interp
 from astropy.io import fits
 import copy
 
@@ -46,6 +47,44 @@ def sample_to_hdr(in_data,  # input data on hexagonal grid (ra_samp, dec_samp)
     
     return data_grid
     
+def resample_hdr(hdr_ov, target_res):
+    """
+    Function to resample the grid to account for lower target resolution
+    :param target_res: The PyStructure resolution in arcsec
+    """
+    
+    #create_wcs header file
+    wcs_new = WCS(naxis=2)
+    wcs_new.wcs.crpix = [1, 1]
+    wcs_ov = WCS(hdr_ov)
+    ra_ref, dec_ref = wcs_ov.all_pix2world(0,0 ,0)
+
+    wcs_new.wcs.crval = [ra_ref, dec_ref]
+    wcs_new.wcs.cunit = ["deg", "deg"]
+    wcs_new.wcs.ctype = ["RA---TAN", "DEC--TAN"]
+
+
+    delta_px = target_res/3600/3
+    wcs_new.wcs.cdelt = [-delta_px, delta_px]
+    
+    #length of axes
+    xaxis_n = int(np.round(hdr_ov['NAXIS1']*abs(hdr_ov['CDELT1'])/delta_px))
+    yaxis_n = int(np.round(hdr_ov['NAXIS2']*abs(hdr_ov['CDELT2'])/delta_px))
+    
+    wcs_new.array_shape = [xaxis_n, yaxis_n]
+    
+    hdr_new = wcs_new.to_header()
+    hdr_new["NAXIS"]=2
+    hdr_new["NAXIS1"]=xaxis_n
+    hdr_new["NAXIS2"]= yaxis_n
+    
+    hdr_new["BMAJ"] = target_res/3600
+    hdr_new["BMIN"] = target_res/3600
+    hdr_new["BPA"] = target_res/3600
+    
+    return hdr_new
+    
+    
 def save_to_fits(ra,
                  dec,
                  hdr_in,
@@ -55,7 +94,8 @@ def save_to_fits(ra,
                  this_source,
                  this_data,
                  line,
-                 folder="./saved_FITS_files/"):
+                 folder,
+                 target_res):
 
     data_in = copy.deepcopy(this_data["INT_"+key+"_"+line.upper()])
     
@@ -65,7 +105,14 @@ def save_to_fits(ra,
                                            hdr_in)
     #make edges to nan
     map_cartesian = ov_slice*map_cartesian
-    
+    #if resolution of overlay is below the target resolution, we need to resample
+    if 3600*min([hdr_in["BMAJ"],hdr_in["BMIN"]])<0.99*target_res:
+        hdr_in_repr = resample_hdr(hdr_in, target_res)
+        #reproject the cartesian map using new
+        map_cartesian, footprint = reproject_interp((map_cartesian,hdr_in), hdr_in_repr)
+        hdr_in = hdr_in_repr
+        
+        
     fits.writeto(folder+this_source+"_"+line+"_"+filename+".fits", data =map_cartesian, header =  hdr_in, overwrite=True)
     
     
@@ -75,7 +122,7 @@ def save_mom_to_fits(fname,
                      lines_data,
                      source_list,
                      run_success,
-                     target_hdr_list, target_slice_list, folder):
+                     target_hdr_list, target_slice_list, folder, target_res):
     """
     Function to prepare and convert the moment maps created on a hexagonal grid onto a cartesian one
     and save as FITS file
@@ -109,15 +156,15 @@ def save_mom_to_fits(fname,
         for line in lines_data["line_name"]:
             #iterate over the moment maps
             #mom0:
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"VAL","mom0",this_source,this_data,line,folder)
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"UC","emom0",this_source,this_data,line,folder)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"VAL","mom0",this_source,this_data,line,folder,target_res)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"UC","emom0",this_source,this_data,line,folder,target_res)
             
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"MOM1","mom1",this_source,this_data,line,folder)
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"EMOM1","emom1",this_source,this_data,line,folder)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"MOM1","mom1",this_source,this_data,line,folder,target_res)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"EMOM1","emom1",this_source,this_data,line,folder,target_res)
             
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"MOM2","mom2",this_source,this_data,line,folder)
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"EMOM2","emom2",this_source,this_data,line,folder)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"MOM2","mom2",this_source,this_data,line,folder,target_res)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"EMOM2","emom2",this_source,this_data,line,folder,target_res)
             
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"TPEAK","tpeak",this_source,this_data,line,folder)
-            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"RMS","rms",this_source,this_data,line,folder)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"TPEAK","tpeak",this_source,this_data,line,folder,target_res)
+            save_to_fits(ra_deg,dec_deg,target_hdr_list[ii],target_slice,"RMS","rms",this_source,this_data,line,folder,target_res)
             

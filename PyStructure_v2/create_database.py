@@ -669,7 +669,8 @@ def create_database(just_source=None, quiet=False, conf=False):
                          run_success,
                          overlay_hdr_list,
                          overlay_slice_list,
-                         folder_savefits)
+                         folder_savefits,
+                        target_res_as)
     
     return run_success
 
