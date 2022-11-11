@@ -7,10 +7,7 @@ import matplotlib.pyplot as plt
 def stack_spec(spec_ra,
                 x, \
                 xtype, \
-                xmin_in = None, \
-                xmax_in = None, \
-                binsize_in = None,\
-                irregular = False,\
+                nbins, xmin_bin, xmax_bin, xmid_bin,\
                 mask =None,\
                 use_median = False,\
                 weights = None):
@@ -26,55 +23,6 @@ def stack_spec(spec_ra,
     if mask is None:
         mask = np.array(~np.isnan(x), dtype = int)
 
-    #--------------------------------------------------------------------------
-    # Construct the bins
-    #--------------------------------------------------------------------------
-
-    if xtype in ['sfr',"12co10","12co21","PACS", "sigtir", "TIR_co21", "TIR_co10"]:
-        xmax = xmax_in
-        xmin = xmin_in
-        deltax = (xmax - xmin)
-        if binsize_in is None:
-            #    ... DEFAULT TO 10 BINS
-            print("[WARNING]\t No binsize specified. Making 10 bins.")
-            binsize = deltax / 10.
-        else:
-            binsize = binsize_in
-    #    MAKE THE BINS
-        nbins = int(abs(np.ceil(deltax / binsize)))
-        xmin_bin = 10**(np.arange(nbins)*binsize)*10**xmin
-        xmax_bin = xmin_bin*10**binsize #< 10**xmax_in
-        xmid_bin = xmin_bin*10**(binsize*0.5)
-    else:
-        #WORK OUT THE MINIMUM FOR THE BINS
-        if xmin_in == None:
-            xmin = np.nanmin(x)
-        else:
-            xmin = xmin_in
-        if xmax_in == None:
-            xmax = np.nanmax(x)
-        else:
-            xmax = xmax_in
-        if not irregular:
-            deltax = (xmax - xmin)
-            if binsize_in is None:
-                #    ... DEFAULT TO 10 BINS
-                print("[WARNING]\t No binsize specified. Making 10 bins.")
-                binsize = deltax / 10.
-            else:
-                binsize = binsize_in
-            #;    MAKE THE BINS
-            nbins = int(abs(np.ceil(deltax / binsize)))
-            xmin_bin = np.arange(nbins)*binsize+xmin
-            xmax_bin = xmin_bin+binsize #< xmax
-            xmid_bin = (xmin_bin+xmax_bin)*0.5
-
-
-        else:
-            nbins = len(xmax_in)
-            xmin_bin = xmin_in
-            xmax_bin = xmax_bin
-            xmid_bin = (xmin_bin+xmax_bin)*0.5
 
     #--------------------------------------------------------------------------
     # Initializze the output

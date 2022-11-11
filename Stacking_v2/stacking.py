@@ -6,6 +6,7 @@ sys.path.append("./scripts/")
 import stacking_func as func
 import stack_specs as stck_spc
 import fitting_routine as fit
+import make_bin as make_bin
 import matplotlib.pyplot as plt
 from astropy.stats import median_absolute_deviation, mad_std
 import copy
@@ -17,7 +18,7 @@ warnings.filterwarnings("ignore")
 
 
 
-def get_stack(fnames,prior_lines,lines, dir_save, dir_data ='./../../data/Database/', show = False, do_smooth = False, xtype = None, sn_limits = [2,4], no_detec_wdw = 30, pad_v = 100, weights_type=None):
+def get_stack(fnames,prior_lines,lines, dir_save, dir_data ='./../../data/Database/', show = False, do_smooth = False, xtype = None, bin_scaling = "linear", nbins = None, sn_limits = [2,4], no_detec_wdw = 30, pad_v = 100, weights_type=None):
     """
     Function converted from IDL to python
     :param fnames: String of name of the PyStructure names, e.g. "ngc5194_datbase.npy"
@@ -25,7 +26,9 @@ def get_stack(fnames,prior_lines,lines, dir_save, dir_data ='./../../data/Databa
     :param dir_data: String of path to the directory, where the IDL database structure is saved
     :param show: show plots [not yet fully implemented]
     :param do_smooth: [variable not yet fully implemented]
-    :param xtype: string name of the quantity by which to stack, must be one of the following: (rad, sfr, co21, co10, PACS, sigtir, TIR_co10, TIR_co21). If none is given, the program asks for user input in the command prompt.
+    :param xtype: string name of the quantity by which to stack, must be included in PyStructure.
+    :param bin_scaling: "linear" or "log"
+    
     :param no_detec_wdw: window size over which to integrate in case no detection is found. In km/s
     :param pad_v: in km/s range at either edges to exclude from integrating or finding the mask
     """
@@ -34,23 +37,8 @@ def get_stack(fnames,prior_lines,lines, dir_save, dir_data ='./../../data/Databa
     # CHOOSE STACKING METHOD (In principle only the "rad" method is valid
     # now because otherwise more information in the structures is needed)
     # --------------------------------------------------------------------
-    # Direcory, where the
-
-    if xtype is None:
-        xtype = input("Choose the stacking method (rad, sfr, 12co21, 12co10, PACS, sigtir, TIR_co10, TIR_co21): ")
-
-        iter = 0
-        while xtype not in ["rad", "sfr", "12co21","12co10","PACS","sigtir", "TIR_co10", "TIR_co21"] and iter <2:
-            print('"'+xtype+'" is an invalid input. Please try again.')
-
-            xtype = input("Choose the stacking method (rad, sfr, 12co21, 12co10, PACS, sigtir, TIR_co10, TIR_co21): ")
-            iter +=1
-
-        if iter == 2:
-            print("Dude (m./f.), read the instructions!!!!")
-            return None
-    else:
-        print("[INFO]\t Stacking by "+xtype)
+    print("[INFO]\t Stacking by "+xtype)
+    
     # -----------------------------------------------------------------------
     # DEFINE THE BINS DEPENDING ON WHICH STACKING METHOD IS USED
     # -----------------------------------------------------------------------
@@ -81,6 +69,7 @@ def get_stack(fnames,prior_lines,lines, dir_save, dir_data ='./../../data/Databa
         file = dir + fnames[i]
         file_ext = os.path.splitext(fnames[i])[1]
         name = os.path.splitext(fnames[i])[0]
+        
         is_IDL = False
         if ".idl" in file_ext:
             struct = idlsave.read(file, verbose=False, python_dict=True)
@@ -93,32 +82,13 @@ def get_stack(fnames,prior_lines,lines, dir_save, dir_data ='./../../data/Databa
 
         # determine xtype for this galaxy -> x axis !!!!!!!!!!!!!!!!!
         xvec = this_data[xtype]
-        """
-        if xtype == 'rad':
-            xvec = this_data["rgal_kpc"]
-        elif xtype == 'sfr':
-            xvec = np.log10(this_data["INT_VAL_SFR"])
-        elif xtype == '12co21':
-            xvec = this_data["INT_VAL_12CO21"]
-        elif xtype == '12co10':
-            xvec = this_data["INT_VAL_12CO10"]
-        elif xtype == 'PACS':
-            xvec = this_data["INT_VAL_PACS70"]/this_data["INT_VAL_PACS160"]
-        elif xtype == "sigtir":
-            path_sigtir = dir_data +galaxy+"_sig_TIR_31as.txt"
-            xvec = np.loadtxt(path_sigtir)
-        elif xtype == "TIR_co10":
-            path_sigtir = dir_data +galaxy+"_sig_TIR_31as.txt"
-            xvec = np.loadtxt(path_sigtir)/this_data["INT_VAL_12CO10"]
-        elif xtype == "TIR_co21":
-            path_sigtir = dir_data +galaxy+"_sig_TIR_31as.txt"
-            xvec = np.loadtxt(path_sigtir)/this_data["INT_VAL_12CO21"]
-        elif xtype == "angle":
-            xvec = this_data["theta_rad"]
-        """
+
         ra = this_data["ra_deg"]
         decl = this_data["dec_deg"]
-
+        
+        #-----------------------------------------------------------------------
+        # Define the weights
+        #-----------------------------------------------------------------------
         weights=None
         if weights_type in ["snr_squared"]:
             print("[INFO]\t Weighting by SNR^2 with "+prior_lines[0])
@@ -127,12 +97,19 @@ def get_stack(fnames,prior_lines,lines, dir_save, dir_data ='./../../data/Databa
             weights = weights**2
         elif weights_type:
             weights = this_data[weights_type]
+            
+        #-----------------------------------------------------------------------
+        # Compute bin-size the weights
+        #-----------------------------------------------------------------------
+        nbins, xmin_bin, xmax_bin,xmid_bin = make_bin.get_bins(xvec, bin_scaling, nbins)
+        
+        
         # -----------------------------------------------------------------------
         # AVERAGE PIXEL MEASUREMENTS
         # -----------------------------------------------------------------------
 
         #collect all pixels with xval value
-        stack = func.stack_pix_by_x(this_data,lines, xtype, xvec ,xmin, xmax , binsize , median  = 'mean' ) #0= mean, 1=median
+        stack = func.stack_pix_by_x(this_data,lines, xtype, xvec , xmin_bin, xmax_bin,xmid_bin, median  = 'mean' ) #0= mean, 1=median
 
         #--------------------------------------------------------------------------
         # STACK THE SPECTRA
@@ -173,14 +150,14 @@ def get_stack(fnames,prior_lines,lines, dir_save, dir_data ='./../../data/Databa
                 vaxis = this_data["SPEC_VCHAN0_SHUFF"+prior_lines[0]] + this_data["SPEC-DELTAV_SHUFF"+prior_lines[0]] * np.arange(len(this_data["SPEC_VAL_SHUFF"+prior_lines[0]][0]))
             co21_spec = shuffled_specs["SPEC_VAL_SHUFF"+prior_lines[0]]
 
-            stack_spec = stck_spc.stack_spec(co21_spec, xvec,xtype, xmin, xmax, binsize, weights = weights)
+            stack_spec = stck_spc.stack_spec(co21_spec, xvec,xtype, nbins, xmin_bin, xmax_bin, xmid_bin, weights = weights)
             stack[prior_lines[0]+"_spec_K"] = stack_spec["spec"]
 
             # Iterate over the different lines that need to be stacked
 
             for line in lines:
                 spec = shuffled_specs["SPEC_VAL_SHUFF"+line]
-                stack_spec = stck_spc.stack_spec(spec, xvec,xtype, xmin, xmax, binsize,weights = weights)
+                stack_spec = stck_spc.stack_spec(spec, xvec,xtype,  nbins, xmin_bin, xmax_bin, xmid_bin,weights = weights)
                 stack[line+"_spec_K"] = stack_spec["spec"]
 
 

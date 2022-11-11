@@ -6,7 +6,7 @@ import bin_profile as prof
 import new_stack as new_stacks
 
 
-def stack_pix_by_x(struct, lines, xtype, x_vec ,xmin, xmax , binsize = None ,mask = None, median = "mean", out_struc_in = None):
+def stack_pix_by_x(struct, lines, xtype, x_vec , xmin_bin, xmax_bin, xmid_bin,mask = None, median = "mean", out_struc_in = None):
 
 
     # -------------------------------------------------------------------------
@@ -21,51 +21,11 @@ def stack_pix_by_x(struct, lines, xtype, x_vec ,xmin, xmax , binsize = None ,mas
         out_struc = new_stacks.new_stacking(lines)
     else:
         out_struc = out_struc_in
-    #MEASURE THE SIZES OF THIS THING
-    n_vec = len(x_vec)
-
-    #INITIALIZE THE MASK
-    if mask is None:
-        mask = np.array(~np.isnan(x_vec), dtype = int)
 
     # -------------------------------------------------------------------------
     # CONSTRUCT THE BINS
     # -------------------------------------------------------------------------
 
-    # WORK OUT THE MAXIMUM FOR THE BINS
-
-    #First construct the logarithmic bins for xtype = sfr
-    
-    if xtype in ['sfr',"12co10","12co21","PACS","sigtir","TIR_co21","TIR_co10"]:
-
-        deltax = (xmax - xmin)
-        
-        if binsize is None:
-            #    ... DEFAULT TO 10 BINS
-            print("[WARNING]\t No binsize specified. Making 10 bins.")
-            binsize = deltax / 10.
-
-    #    MAKE THE BINS
-        nbins = abs(np.ceil(deltax / binsize))
-        xmin_bin = 10**(np.arange(nbins)*binsize)*10**xmin
-        xmax_bin = xmin_bin*10**binsize #< 10**xmax_in
-        xmid_bin = xmin_bin*10**(binsize*0.5)
-        
-        
-    else:
-        #WORK OUT THE MINIMUM FOR THE BINS
-
-        deltax = (xmax - xmin)
-        if binsize is None:
-            #    ... DEFAULT TO 10 BINS
-            print("[WARNING]\t No binsize specified. Making 10 bins.")
-            binsize = deltax / 10.
-
-        #;    MAKE THE BINS
-        nbins = abs(np.ceil(deltax / binsize))
-        xmin_bin = np.arange(nbins)*binsize+xmin
-        xmax_bin = xmin_bin+binsize #< xmax
-        xmid_bin = (xmin_bin+xmax_bin)*0.5
 
     # -------------------------------------------------------------------------
     # Loop Over List of Tag Names
