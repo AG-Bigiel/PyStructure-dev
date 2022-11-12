@@ -15,32 +15,28 @@ def get_bins(x,
     #--------------------------------------------------------------------------
     #define maxima and minima
     if xmax_in is None:
-        print("[INFO]\t No maximum specified. Defaulting to Data,")
         xmax = np.nanmax(x)
+        print("[INFO]\t No maximum specified. Defaulting to data maximum: ", xmax)
     else:
         xmax = xmax_in
 
     if xmin_in is None:
-        print("[INFO]\t No maximum specified. Defaulting to Data,")
         xmin = np.nanmin(x)
+        print("[INFO]\t No minimum specified. Defaulting to data minimum: ", xmin)
     else:
         if scaling in "linear":
             xmin = xmin_in
         else:
             #if logscaling, ignore the negative values
             xmin = np.nanpercentile(x[x>0],10)
-#--------------------------------------------------------------------------------
-
-    
+            
+    #--------------------------------------------------------------------------------
     
     if nbins is None:
-        print("[INFO]\t No nbins specified. Making 10 bins")
+        print("[INFO]\t No nbins specified. Making 10 bins.")
         nbins = 10
  
-        
-   
-    #Make the bins
-    
+
     
     # MAKE BINS
     
