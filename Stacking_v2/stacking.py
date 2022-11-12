@@ -215,7 +215,10 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
             for prior_line in prior_lines:
 
                 prior = copy.copy(stack[prior_line+"_spec_K"][:,j])
-
+                
+                # Skip bin if empty
+                if np.nansum(prior) == 0:
+                    continue
 
                 #Ignore the boundaries
                 min_v = np.nanmin(vaxis[np.where(np.isfinite(prior))])
@@ -243,12 +246,17 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
                 for kk in range(10):
                     mask = np.array(((mask + np.roll(mask, 1) + np.roll(mask, -1)) >= 1), dtype = int)*low_mask
 
-
-
                 prior_specs.append(stack[prior_line+"_spec_K"][:,j])
                 masks.append(mask)
                 rms_values.append(rms)
 
+                
+            # go to next bin if empty
+            if len(prior_specs) == 0:
+                print('[WARNING]\tNo data in bin',j+1,'/',len(stack['xmid']),'with xmid =',stack['xmid'][j],
+                      '\n\t\tReturn nan values throughout for this bin.')
+                continue
+                
             mask = masks[0]
             rms = rms_values[0]
             prior_ii_ref = np.nansum(prior_specs[0]*mask)*abs(v[1]-v[0])
