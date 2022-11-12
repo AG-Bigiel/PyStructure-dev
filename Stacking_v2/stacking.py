@@ -39,17 +39,6 @@ def get_stack(fnames,prior_lines,lines, dir_save, dir_data ='./../../data/Databa
     # --------------------------------------------------------------------
     print("[INFO]\t Stacking by "+xtype)
     
-    # -----------------------------------------------------------------------
-    # DEFINE THE BINS DEPENDING ON WHICH STACKING METHOD IS USED
-    # -----------------------------------------------------------------------
-    bin_values = pd.read_csv("Files/bin_values.txt", sep = "\t\t",comment = "#", engine = "python")
-
-    flag_index = np.where(np.array(bin_values["FLAG"]) == xtype)[0]
-    xmin=bin_values["VAL"][flag_index[0]]
-    xmax=bin_values["VAL"][flag_index[1]]
-    binsize = bin_values["VAL"][flag_index[2]]
-
-    
 
     # -----------------------------------------------------------------------
     # LOOP THROUGH THE DIFFERENT GALAXIES
