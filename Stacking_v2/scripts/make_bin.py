@@ -5,30 +5,32 @@ import numpy as np
 def get_bins(x,
             scaling,
             nbins,
-            xmax_in=None,
             xmin_in=None,
+            xmax_in=None,
             ):
 
 
     #--------------------------------------------------------------------------
     # Construct the bins
     #--------------------------------------------------------------------------
-    #define maxima and minima
+    #define minima and  maxima
+    if xmin_in is None:
+        if scaling in "linear":
+            xmin = np.nanmin(x)
+            print("[INFO]\t No minimum specified. Defaulting to data minimum: ", xmin)
+        else:
+            #if logscaling, ignore the negative values
+            xmin = np.nanpercentile(x[x>0],10)
+            print("[INFO]\t No minimum specified and log-scale. Defaulting to: ", xmin)
+    else:
+        xmin = xmin_in
+
+    
     if xmax_in is None:
         xmax = np.nanmax(x)
         print("[INFO]\t No maximum specified. Defaulting to data maximum: ", xmax)
     else:
         xmax = xmax_in
-
-    if xmin_in is None:
-        xmin = np.nanmin(x)
-        print("[INFO]\t No minimum specified. Defaulting to data minimum: ", xmin)
-    else:
-        if scaling in "linear":
-            xmin = xmin_in
-        else:
-            #if logscaling, ignore the negative values
-            xmin = np.nanpercentile(x[x>0],10)
             
     #--------------------------------------------------------------------------------
     
