@@ -18,7 +18,10 @@ warnings.filterwarnings("ignore")
 
 
 
-def get_stack(fnames,prior_lines,lines, dir_save, dir_data ='./../../data/Database/', show = False, do_smooth = False, xtype = None, bin_scaling = "linear", nbins = None, sn_limits = [2,4], no_detec_wdw = 30, pad_v = 100, weights_type=None):
+def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Database/', 
+              show = False, do_smooth = False, xtype = None, 
+              bin_scaling = "linear", nbins = None, xmin=None, xmax=None,
+              sn_limits = [2,4], no_detec_wdw = 30, pad_v = 100, weights_type=None):
     """
     Function converted from IDL to python
     :param fnames: String of name of the PyStructure names, e.g. "ngc5194_datbase.npy"
@@ -28,20 +31,23 @@ def get_stack(fnames,prior_lines,lines, dir_save, dir_data ='./../../data/Databa
     :param do_smooth: [variable not yet fully implemented]
     :param xtype: string name of the quantity by which to stack, must be included in PyStructure.
     :param bin_scaling: "linear" or "log"
-    
+    :param nbins: number of bins (integer)
+    :param xmin: bin minimum (set as maximum of data range if None)
+    :param xmax: bin maximum (set as minimum of data range if None)
+    :param sn_limits: S/N thresholds for lower and upper mask
     :param no_detec_wdw: window size over which to integrate in case no detection is found. In km/s
     :param pad_v: in km/s range at either edges to exclude from integrating or finding the mask
+    :param weights_type: string name of the quantity by which to weight the stacking
     """
 
     # --------------------------------------------------------------------
-    # CHOOSE STACKING METHOD (In principle only the "rad" method is valid
-    # now because otherwise more information in the structures is needed)
+    # STACKING METHOD
     # --------------------------------------------------------------------
     print("[INFO]\t Stacking by "+xtype)
     
 
     # -----------------------------------------------------------------------
-    # LOOP THROUGH THE DIFFERENT GALAXIES
+    # LOOP THROUGH THE DIFFERENT FILES/SOURCES
     # -----------------------------------------------------------------------
 
     if hasattr(fnames, '__len__') == False or isinstance(fnames,str):
@@ -85,12 +91,13 @@ def get_stack(fnames,prior_lines,lines, dir_save, dir_data ='./../../data/Databa
             weights[weights<0]=0
             weights = weights**2
         elif weights_type:
+            print("[INFO]\t Weighting by " + weights_type)
             weights = this_data[weights_type]
             
         #-----------------------------------------------------------------------
         # Compute bin-size the weights
         #-----------------------------------------------------------------------
-        nbins, xmin_bin, xmax_bin,xmid_bin = make_bin.get_bins(xvec, bin_scaling, nbins)
+        nbins, xmin_bin, xmax_bin,xmid_bin = make_bin.get_bins(xvec, bin_scaling, nbins, xmin_in=xmin, xmax_in=xmax)
         
         
         # -----------------------------------------------------------------------
@@ -153,162 +160,162 @@ def get_stack(fnames,prior_lines,lines, dir_save, dir_data ='./../../data/Databa
                 #print(np.shape(stack_spec["spec"]))
 
         # save some more galaxy parameters
-    if is_IDL:
-        stack["dist_mpc"] = this_data["dist_mpc"][0]
-        stack["posang_deg"] = this_data["posang_deg"][0]
-        stack["incl_deg"] = this_data["incl_deg"][0]
-        stack["beam_as"] = this_data["beam_as"][0]
-    else:
-        stack["dist_mpc"] = this_data["dist_mpc"]
-        stack["posang_deg"] = this_data["posang_deg"]
-        stack["incl_deg"] = this_data["incl_deg"]
-        stack["beam_as"] = this_data["beam_as"]
-   
-    stack["vaxis_kms"] = vaxis
+        if is_IDL:
+            stack["dist_mpc"] = this_data["dist_mpc"][0]
+            stack["posang_deg"] = this_data["posang_deg"][0]
+            stack["incl_deg"] = this_data["incl_deg"][0]
+            stack["beam_as"] = this_data["beam_as"][0]
+        else:
+            stack["dist_mpc"] = this_data["dist_mpc"]
+            stack["posang_deg"] = this_data["posang_deg"]
+            stack["incl_deg"] = this_data["incl_deg"]
+            stack["beam_as"] = this_data["beam_as"]
 
-    stack["ncounts"] = np.nanmax(stack_spec["counts"], axis = 0)
-    stack["narea_kpc2"] = 37.575*(1/3600*stack["dist_mpc"]*np.pi/180)**2* \
-                          np.cos(np.pi/180*stack["incl_deg"])*stack["ncounts"]
+        stack["vaxis_kms"] = vaxis
 
-
-
-    #--------------------------------------------------------------------------
-    # Fit Gaussian to spectral line
-    # -------------------------------------------------------------------------
-
-    # Prepare the output of the fittinbf
-    n_stacks = len(stack['xmid'])
-    stack["prior_mask"] = np.zeros((nvaxis,n_stacks))*np.nan
-
-    for line in lines+prior_lines:
-        stack["rms_K_"+line]       = np.zeros(n_stacks)*np.nan
-        stack["peak_K_"+line]      = np.zeros(n_stacks)*np.nan
-        stack["ii_K_kms_"+line]    = np.zeros(n_stacks)*np.nan
-        stack["uc_ii_K_kms_"+line] = np.zeros(n_stacks)*np.nan
-        stack["limit_K_kms_"+line] = np.zeros(n_stacks)*np.nan
-        stack["SNR_"+line] = np.zeros(n_stacks)*np.nan
-
-
-    for j in range(len(stack['xmid'])):
-
-       #--------------------------------------------------------------------------
-       # Need to first find the bounds using a prior (the brightest line)
-       # -------------------------------------------------------------------------
-        v = stack["vaxis_kms"]
+        stack["ncounts"] = np.nanmax(stack_spec["counts"], axis = 0)
+        stack["narea_kpc2"] = 37.575*(1/3600*stack["dist_mpc"]*np.pi/180)**2* \
+                              np.cos(np.pi/180*stack["incl_deg"])*stack["ncounts"]
 
 
 
-        # The user can give several priors. Iterate over the priors and check which one shows the stongest detection. Use that line as prior for that given bin.
-        prior_specs = []
-        masks = []
-        rms_values = []
+        #--------------------------------------------------------------------------
+        # Fit Gaussian to spectral line
+        # -------------------------------------------------------------------------
 
-        sn_low = sn_limits[0]
-        sn_up = sn_limits[1]
-        for prior_line in prior_lines:
+        # Prepare the output of the fittinbf
+        n_stacks = len(stack['xmid'])
+        stack["prior_mask"] = np.zeros((nvaxis,n_stacks))*np.nan
 
-            prior = copy.copy(stack[prior_line+"_spec_K"][:,j])
-
-
-            #Ignore the boundaries
-            min_v = np.nanmin(vaxis[np.where(np.isfinite(prior))])
-            max_v = np.nanmax(vaxis[np.where(np.isfinite(prior))])
-            always_empty = np.isfinite(prior) & (np.array(vaxis < np.min([(min_v + pad_v),max_v]), dtype = int) | \
-                              np.array(vaxis > np.max([(max_v - pad_v),0]), dtype = int))
-            always_spec = always_empty | np.array(np.isfinite(prior)==0)
-            prior[np.where(always_spec)]=np.nan
-
-
-            #Estimate rms
-            rms = median_absolute_deviation(prior, axis = None,ignore_nan=True)
-            rms = median_absolute_deviation(prior[np.where(prior<3*rms)],ignore_nan=True)
-
-
-            # Mask each spectrum
-            mask = np.array(prior > sn_up * rms, dtype = int)
-            low_mask = np.array(prior > sn_low * rms, dtype = int)
-
-            mask = mask & (np.roll(mask, 1) | np.roll(mask,-1))
-            #remove spikes
-            mask = np.array((mask + np.roll(mask, 1) + np.roll(mask, -1))>=3, dtype = int)
-
-            #expand to cover all > 2sigma that have a 2-at-4sigma core
-            for kk in range(10):
-                mask = np.array(((mask + np.roll(mask, 1) + np.roll(mask, -1)) >= 1), dtype = int)*low_mask
-
-
-
-            prior_specs.append(stack[prior_line+"_spec_K"][:,j])
-            masks.append(mask)
-            rms_values.append(rms)
-
-        mask = masks[0]
-        rms = rms_values[0]
-        prior_ii_ref = np.nansum(prior_specs[0]*mask)*abs(v[1]-v[0])
-        for n in range(len(masks)-1):
-            if len(masks[n+1][0])<1:
-                continue
-            prior_ii_comp = np.nansum(prior_specs[n+1]*mask[n+1])*abs(v[1]-v[0])
-            if prior_ii_comp>prior_ii_ref:
-                mask = masks[n+1]
-                rms = rms_values[n+1]
-
-        stack["prior_mask"][:,j] = mask
-
-        #line_vmean = np.nansum(v * prior*mask)/ np.nansum(prior*mask)
-
-        #prior_ii = np.nansum(prior*mask)*abs(v[1]-v[0])
-
-        #prior_uc = max([1, np.sqrt(np.nansum(mask))])*rms*abs(v[1]-v[0])
-
-        #stack["rms_K_"+prior_line][j] = rms
-        #stack["peak_K_"+prior_line][j] = np.nanmax(prior)
-        #stack["ii_K_kms_"+prior_line][j] = prior_ii
-        #stack["uc_ii_K_kms_"+prior_line][j] = prior_uc
-
-
-        """
-        ToDo: If none of the priors shows a detection, the program should give back only an upper limit
-        """
         for line in lines+prior_lines:
+            stack["rms_K_"+line]       = np.zeros(n_stacks)*np.nan
+            stack["peak_K_"+line]      = np.zeros(n_stacks)*np.nan
+            stack["ii_K_kms_"+line]    = np.zeros(n_stacks)*np.nan
+            stack["uc_ii_K_kms_"+line] = np.zeros(n_stacks)*np.nan
+            stack["limit_K_kms_"+line] = np.zeros(n_stacks)*np.nan
+            stack["SNR_"+line] = np.zeros(n_stacks)*np.nan
 
 
-            # Fit the line
-            spec_to_integrate = stack[line+"_spec_K"][:,j]
+        for j in range(len(stack['xmid'])):
 
-            spec_to_integrate[spec_to_integrate == 0] = np.nan
-
-            #calculate rms of line
-            rms_line = median_absolute_deviation(spec_to_integrate, axis = None,ignore_nan=True)
-            rms_line = median_absolute_deviation(spec_to_integrate[np.where(spec_to_integrate<3*rms_line)],ignore_nan=True)
-            std_line = mad_std(spec_to_integrate[np.where(spec_to_integrate<3*rms_line)], axis = None,ignore_nan=True)
-            line_ii = np.nansum(spec_to_integrate*mask)*abs(v[1]-v[0])
-            line_uc = max([1, np.sqrt(np.nansum(mask))])*std_line*abs(v[1]-v[0])
-
-            # Fill in dictionary
-            stack["rms_K_"+line][j] = std_line
-            stack["peak_K_"+line][j] = np.nanmax(spec_to_integrate*mask)
-
-            stack["ii_K_kms_"+line][j] = line_ii
-            stack["uc_ii_K_kms_"+line][j] = line_uc
-
-            SNR_line = line_ii/line_uc
-            stack["SNR_"+line][j] = SNR_line
-            if SNR_line<3:
-                #if window found: integrate over that
-                if np.nansum(mask)>2:
-                    stack["limit_K_kms_"+line][j] = 3*std_line*max([1, np.sqrt(np.nansum(mask))])*abs(v[1]-v[0])
-
-                #if no window found: use (default) 30 km/s window
-                else:
-                    stack["limit_K_kms_"+line][j] = 3*std_line*no_detec_wdw
+           #--------------------------------------------------------------------------
+           # Need to first find the bounds using a prior (the brightest line)
+           # -------------------------------------------------------------------------
+            v = stack["vaxis_kms"]
 
 
-    path_save = dir_save + name+"_stack_"+xtype+".npy"
-    np.save(path_save, stack)
-    print("[INFO]\t Successfull Finished")
 
-    return stack
+            # The user can give several priors. Iterate over the priors and check which one shows the stongest detection. Use that line as prior for that given bin.
+            prior_specs = []
+            masks = []
+            rms_values = []
+
+            sn_low = sn_limits[0]
+            sn_up = sn_limits[1]
+            for prior_line in prior_lines:
+
+                prior = copy.copy(stack[prior_line+"_spec_K"][:,j])
+
+
+                #Ignore the boundaries
+                min_v = np.nanmin(vaxis[np.where(np.isfinite(prior))])
+                max_v = np.nanmax(vaxis[np.where(np.isfinite(prior))])
+                always_empty = np.isfinite(prior) & (np.array(vaxis < np.min([(min_v + pad_v),max_v]), dtype = int) | \
+                                  np.array(vaxis > np.max([(max_v - pad_v),0]), dtype = int))
+                always_spec = always_empty | np.array(np.isfinite(prior)==0)
+                prior[np.where(always_spec)]=np.nan
+
+
+                #Estimate rms
+                rms = median_absolute_deviation(prior, axis = None,ignore_nan=True)
+                rms = median_absolute_deviation(prior[np.where(prior<3*rms)],ignore_nan=True)
+
+
+                # Mask each spectrum
+                mask = np.array(prior > sn_up * rms, dtype = int)
+                low_mask = np.array(prior > sn_low * rms, dtype = int)
+
+                mask = mask & (np.roll(mask, 1) | np.roll(mask,-1))
+                #remove spikes
+                mask = np.array((mask + np.roll(mask, 1) + np.roll(mask, -1))>=3, dtype = int)
+
+                #expand to cover all > 2sigma that have a 2-at-4sigma core
+                for kk in range(10):
+                    mask = np.array(((mask + np.roll(mask, 1) + np.roll(mask, -1)) >= 1), dtype = int)*low_mask
+
+
+
+                prior_specs.append(stack[prior_line+"_spec_K"][:,j])
+                masks.append(mask)
+                rms_values.append(rms)
+
+            mask = masks[0]
+            rms = rms_values[0]
+            prior_ii_ref = np.nansum(prior_specs[0]*mask)*abs(v[1]-v[0])
+            for n in range(len(masks)-1):
+                if len(masks[n+1][0])<1:
+                    continue
+                prior_ii_comp = np.nansum(prior_specs[n+1]*mask[n+1])*abs(v[1]-v[0])
+                if prior_ii_comp>prior_ii_ref:
+                    mask = masks[n+1]
+                    rms = rms_values[n+1]
+
+            stack["prior_mask"][:,j] = mask
+
+            #line_vmean = np.nansum(v * prior*mask)/ np.nansum(prior*mask)
+
+            #prior_ii = np.nansum(prior*mask)*abs(v[1]-v[0])
+
+            #prior_uc = max([1, np.sqrt(np.nansum(mask))])*rms*abs(v[1]-v[0])
+
+            #stack["rms_K_"+prior_line][j] = rms
+            #stack["peak_K_"+prior_line][j] = np.nanmax(prior)
+            #stack["ii_K_kms_"+prior_line][j] = prior_ii
+            #stack["uc_ii_K_kms_"+prior_line][j] = prior_uc
+
+
+            """
+            ToDo: If none of the priors shows a detection, the program should give back only an upper limit
+            """
+            for line in lines+prior_lines:
+
+
+                # Fit the line
+                spec_to_integrate = stack[line+"_spec_K"][:,j]
+
+                spec_to_integrate[spec_to_integrate == 0] = np.nan
+
+                #calculate rms of line
+                rms_line = median_absolute_deviation(spec_to_integrate, axis = None,ignore_nan=True)
+                rms_line = median_absolute_deviation(spec_to_integrate[np.where(spec_to_integrate<3*rms_line)],ignore_nan=True)
+                std_line = mad_std(spec_to_integrate[np.where(spec_to_integrate<3*rms_line)], axis = None,ignore_nan=True)
+                line_ii = np.nansum(spec_to_integrate*mask)*abs(v[1]-v[0])
+                line_uc = max([1, np.sqrt(np.nansum(mask))])*std_line*abs(v[1]-v[0])
+
+                # Fill in dictionary
+                stack["rms_K_"+line][j] = std_line
+                stack["peak_K_"+line][j] = np.nanmax(spec_to_integrate*mask)
+
+                stack["ii_K_kms_"+line][j] = line_ii
+                stack["uc_ii_K_kms_"+line][j] = line_uc
+
+                SNR_line = line_ii/line_uc
+                stack["SNR_"+line][j] = SNR_line
+                if SNR_line<3:
+                    #if window found: integrate over that
+                    if np.nansum(mask)>2:
+                        stack["limit_K_kms_"+line][j] = 3*std_line*max([1, np.sqrt(np.nansum(mask))])*abs(v[1]-v[0])
+
+                    #if no window found: use (default) 30 km/s window
+                    else:
+                        stack["limit_K_kms_"+line][j] = 3*std_line*no_detec_wdw
+
+
+        path_save = dir_save + name+"_stack_"+xtype+".npy"
+        np.save(path_save, stack)
+        print("[INFO]\t Successfull Finished")
+
+    return None
 
 
 
