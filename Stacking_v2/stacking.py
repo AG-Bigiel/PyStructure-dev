@@ -195,7 +195,8 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
             stack["peak_K_"+line]      = np.zeros(n_stacks)*np.nan
             stack["ii_K_kms_"+line]    = np.zeros(n_stacks)*np.nan
             stack["uc_ii_K_kms_"+line] = np.zeros(n_stacks)*np.nan
-            stack["limit_K_kms_"+line] = np.zeros(n_stacks)*np.nan
+            stack["upplim_K_kms_"+line] = np.zeros(n_stacks)*np.nan
+            stack["lowlim_K_kms_"+line] = np.zeros(n_stacks)*np.nan
             stack["SNR_"+line] = np.zeros(n_stacks)*np.nan
 
 
