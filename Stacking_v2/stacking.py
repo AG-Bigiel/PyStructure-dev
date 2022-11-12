@@ -21,7 +21,8 @@ warnings.filterwarnings("ignore")
 def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Database/', 
               show = False, do_smooth = False, xtype = None, 
               bin_scaling = "linear", nbins = None, xmin=None, xmax=None,
-              sn_limits = [2,4], no_detec_wdw = 30, pad_v = 100, weights_type=None):
+              sn_limits = [2,4], no_detec_wdw = 30, pad_v = 100, 
+              weights_type=None, rms_type=None, line_wdw=50):
     """
     Function converted from IDL to python
     :param fnames: String of name of the PyStructure names, e.g. "ngc5194_datbase.npy"
@@ -38,6 +39,8 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
     :param no_detec_wdw: window size over which to integrate in case no detection is found. In km/s
     :param pad_v: in km/s range at either edges to exclude from integrating or finding the mask
     :param weights_type: string name of the quantity by which to weight the stacking
+    :param rms_type: can be 'iterative'
+    :param line_wdw: window size where emission is expected to exlude from finding the mask. In km/s
     """
 
     # --------------------------------------------------------------------
@@ -227,11 +230,31 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
                                   np.array(vaxis > np.max([(max_v - pad_v),0]), dtype = int))
                 always_spec = always_empty | np.array(np.isfinite(prior)==0)
                 prior[np.where(always_spec)]=np.nan
-
+            
+                #Ignore line centre
+                prior_wo_line = np.copy(prior)
+                prior_wo_line[(vaxis>-line_wdw/2) & (vaxis<line_wdw/2)] = np.nan
 
                 #Estimate rms
-                rms = median_absolute_deviation(prior, axis = None,ignore_nan=True)
-                rms = median_absolute_deviation(prior[np.where(prior<3*rms)],ignore_nan=True)
+                if rms_type == 'iterative':
+                    rms_old = median_absolute_deviation(prior_wo_line, axis = None,ignore_nan=True)
+                    rms = median_absolute_deviation(prior_wo_line[np.where(prior_wo_line<2*rms_old)],ignore_nan=True)
+                    while abs((rms-rms_old)/rms) > 0.1:
+                        rms_old = rms
+                        rms = median_absolute_deviation(prior_wo_line[np.where(prior_wo_line<3*rms_old)],ignore_nan=True)
+                        if len(prior_wo_line[np.where(prior_wo_line<3*rms)]) == 0:
+                            # if above leads to an empty spectrum, there are probably no emission-free channels
+                            # in this case, rms cannot be determined and we integrate over the full bandwidth to obtain a lower limit
+                            print('[WARNING]\tNo line-free channels available to compute the rms in bin',j+1,'/',len(stack['xmid']),'with xmid =',stack['xmid'][j],
+                                  '\n\t\tIntegrate over full bandwidth and return lower limit.')
+                            rms = np.nan
+                            break
+                
+                elif not rms_type:
+                    rms = median_absolute_deviation(prior, axis = None,ignore_nan=True)
+                    rms = median_absolute_deviation(prior[np.where(prior<3*rms)],ignore_nan=True)
+                else:
+                    print('[ERROR]\t rms_type not specified. Must be None or "iterative".')
 
 
                 # Mask each spectrum
@@ -270,23 +293,8 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
 
             stack["prior_mask"][:,j] = mask
 
-            #line_vmean = np.nansum(v * prior*mask)/ np.nansum(prior*mask)
 
-            #prior_ii = np.nansum(prior*mask)*abs(v[1]-v[0])
-
-            #prior_uc = max([1, np.sqrt(np.nansum(mask))])*rms*abs(v[1]-v[0])
-
-            #stack["rms_K_"+prior_line][j] = rms
-            #stack["peak_K_"+prior_line][j] = np.nanmax(prior)
-            #stack["ii_K_kms_"+prior_line][j] = prior_ii
-            #stack["uc_ii_K_kms_"+prior_line][j] = prior_uc
-
-
-            """
-            ToDo: If none of the priors shows a detection, the program should give back only an upper limit
-            """
             for line in lines+prior_lines:
-
 
                 # Fit the line
                 spec_to_integrate = stack[line+"_spec_K"][:,j]
@@ -294,11 +302,21 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
                 spec_to_integrate[spec_to_integrate == 0] = np.nan
 
                 #calculate rms of line
-                rms_line = median_absolute_deviation(spec_to_integrate, axis = None,ignore_nan=True)
-                rms_line = median_absolute_deviation(spec_to_integrate[np.where(spec_to_integrate<3*rms_line)],ignore_nan=True)
-                std_line = mad_std(spec_to_integrate[np.where(spec_to_integrate<3*rms_line)], axis = None,ignore_nan=True)
-                line_ii = np.nansum(spec_to_integrate*mask)*abs(v[1]-v[0])
-                line_uc = max([1, np.sqrt(np.nansum(mask))])*std_line*abs(v[1]-v[0])
+                if np.isnan(rms):
+                    # return lower limit for line intensity if mask could not be determined
+                    std_line = np.nan
+                    line_ii = np.nan
+                    line_uc = np.nan
+                    line_lowlim = np.nansum(spec_to_integrate)*abs(v[1]-v[0])
+                    stack["lowlim_K_kms_"+line][j] = line_lowlim
+                else:
+                    # rms of each line is the standard deviation outside of the mask
+                    rms_line = median_absolute_deviation(spec_to_integrate, axis=None, ignore_nan=True)
+                    rms_line = median_absolute_deviation(spec_to_integrate[np.where(spec_to_integrate<3*rms_line)], ignore_nan=True)
+                    std_line = np.nanstd(spec_to_integrate[np.where(mask==0)])
+                    line_ii = np.nansum(spec_to_integrate*mask)*abs(v[1]-v[0])
+                    line_uc = max([1, np.sqrt(np.nansum(mask))])*std_line*abs(v[1]-v[0])
+
 
                 # Fill in dictionary
                 stack["rms_K_"+line][j] = std_line
@@ -309,15 +327,18 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
 
                 SNR_line = line_ii/line_uc
                 stack["SNR_"+line][j] = SNR_line
-                if SNR_line<3:
-                    #if window found: integrate over that
+                          
+                if SNR_line<3:    
+                    # if window found: integrate over that
                     if np.nansum(mask)>2:
-                        stack["limit_K_kms_"+line][j] = 3*std_line*max([1, np.sqrt(np.nansum(mask))])*abs(v[1]-v[0])
+                        stack["upplim_K_kms_"+line][j] = 3*std_line*max([1, np.sqrt(np.nansum(mask))])*abs(v[1]-v[0])
 
-                    #if no window found: use (default) 30 km/s window
+                    # if no window found: use (default) 30 km/s window
                     else:
-                        stack["limit_K_kms_"+line][j] = 3*std_line*no_detec_wdw
-
+                        mask_no_detec_wdw = np.zeros_like(mask)
+                        mask_no_detec_wdw[(vaxis>-no_detec_wdw/2) & (vaxis<no_detec_wdw/2)] = 1
+                        stack["upplim_K_kms_"+line][j] = 3*std_line*max([1, np.sqrt(np.nansum(mask_no_detec_wdw))])*abs(vaxis[1]-vaxis[0])
+                          
 
         path_save = dir_save + name+"_stack_"+xtype+".npy"
         np.save(path_save, stack)
