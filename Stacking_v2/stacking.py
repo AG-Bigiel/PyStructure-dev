@@ -304,28 +304,25 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
 
                 # Fit the line
                 spec_to_integrate = stack[line+"_spec_K"][:,j]
-
                 spec_to_integrate[spec_to_integrate == 0] = np.nan
 
                 #calculate rms of line
                 if np.isnan(rms):
                     # return lower limit for line intensity if mask could not be determined
-                    std_line = np.nan
+                    rms_line = np.nan
                     line_ii = np.nan
                     line_uc = np.nan
                     line_lowlim = np.nansum(spec_to_integrate)*abs(v[1]-v[0])
                     stack["lowlim_K_kms_"+line][j] = line_lowlim
                 else:
                     # rms of each line is the standard deviation outside of the mask
-                    rms_line = median_absolute_deviation(spec_to_integrate, axis=None, ignore_nan=True)
-                    rms_line = median_absolute_deviation(spec_to_integrate[np.where(spec_to_integrate<3*rms_line)], ignore_nan=True)
-                    std_line = np.nanstd(spec_to_integrate[np.where(mask==0)])
+                    rms_line = np.nanstd(spec_to_integrate[np.where(mask==0)])
                     line_ii = np.nansum(spec_to_integrate*mask)*abs(v[1]-v[0])
-                    line_uc = max([1, np.sqrt(np.nansum(mask))])*std_line*abs(v[1]-v[0])
+                    line_uc = max([1, np.sqrt(np.nansum(mask))])*rms_line*abs(v[1]-v[0])
 
 
                 # Fill in dictionary
-                stack["rms_K_"+line][j] = std_line
+                stack["rms_K_"+line][j] = rms_line
                 stack["peak_K_"+line][j] = np.nanmax(spec_to_integrate*mask)
 
                 stack["ii_K_kms_"+line][j] = line_ii
@@ -343,7 +340,7 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
                     else:
                         mask_no_detec_wdw = np.zeros_like(mask)
                         mask_no_detec_wdw[(vaxis>-no_detec_wdw/2) & (vaxis<no_detec_wdw/2)] = 1
-                        stack["upplim_K_kms_"+line][j] = 3*std_line*max([1, np.sqrt(np.nansum(mask_no_detec_wdw))])*abs(vaxis[1]-vaxis[0])
+                        stack["upplim_K_kms_"+line][j] = 3*rms_line*max([1, np.sqrt(np.nansum(mask_no_detec_wdw))])*abs(vaxis[1]-vaxis[0])
                           
 
         path_save = dir_save + name+"_stack_"+xtype+".npy"
