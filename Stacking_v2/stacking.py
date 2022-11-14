@@ -22,7 +22,7 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
               show = False, do_smooth = False, xtype = None, 
               bin_scaling = "linear", nbins = None, xmin=None, xmax=None,
               sn_limits = [2,4], no_detec_wdw = 30, pad_v = 100, 
-              weights_type=None, rms_type=None, line_wdw=50):
+              weights_type=None, rms_type=None, line_wdw=0):
     """
     Function converted from IDL to python
     :param fnames: String of name of the PyStructure names, e.g. "ngc5194_datbase.npy"
@@ -238,22 +238,30 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
 
                 #Estimate rms
                 if rms_type == 'iterative':
+                    rms_iter = 0  # counter for iterations
+                    rms_iter_max = 100  # maximum number of iterations
                     rms_old = median_absolute_deviation(prior_wo_line, axis = None,ignore_nan=True)
-                    rms = median_absolute_deviation(prior_wo_line[np.where(prior_wo_line<2*rms_old)],ignore_nan=True)
+                    rms = median_absolute_deviation(prior_wo_line[np.where(prior_wo_line<3*rms_old)],ignore_nan=True)
                     while abs((rms-rms_old)/rms) > 0.1:
                         rms_old = rms
-                        rms = median_absolute_deviation(prior_wo_line[np.where(prior_wo_line<3*rms_old)],ignore_nan=True)
+                        rms = np.nanstd(prior_wo_line[np.where(prior_wo_line<3*rms_old)])
+                        rms_iter += 1
+                        print(rms_old, rms)
+                        print(len(prior_wo_line[np.where(prior_wo_line<3*rms)]))
                         if len(prior_wo_line[np.where(prior_wo_line<3*rms)]) == 0:
                             # if above leads to an empty spectrum, there are probably no emission-free channels
                             # in this case, rms cannot be determined and we integrate over the full bandwidth to obtain a lower limit
-                            print('[WARNING]\tNo line-free channels available to compute the rms in bin',j+1,'/',len(stack['xmid']),'with xmid =',stack['xmid'][j],
+                            print('[WARNING]\tIn bin',j+1,'/',len(stack['xmid']),'with xmid =',stack['xmid'][j], ': No line-free channels available to compute the rms.'
                                   '\n\t\tIntegrate over full bandwidth and return lower limit.')
                             rms = np.nan
                             break
+                        elif rms_iter == rms_iter_max:
+                            print('[WARNING]\tIn bin',j+1,'/',len(stack['xmid']),'with xmid =',stack['xmid'][j], ': Maximum number of iterations (%i) reached in computing the rms.' % rms_iter_max)
+                            break
                 
                 elif not rms_type:
-                    rms = median_absolute_deviation(prior, axis = None,ignore_nan=True)
-                    rms = median_absolute_deviation(prior[np.where(prior<3*rms)],ignore_nan=True)
+                    rms = median_absolute_deviation(prior_wo_line, axis = None,ignore_nan=True)
+                    rms = median_absolute_deviation(prior_wo_line[np.where(prior_wo_line<3*rms)],ignore_nan=True)
                 else:
                     print('[ERROR]\t rms_type not specified. Must be None or "iterative".')
 
@@ -277,8 +285,7 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
                 
             # go to next bin if empty
             if len(prior_specs) == 0:
-                print('[WARNING]\tNo data in bin',j+1,'/',len(stack['xmid']),'with xmid =',stack['xmid'][j],
-                      '\n\t\tReturn nan values throughout for this bin.')
+                print('[WARNING]\tIn bin',j+1,'/',len(stack['xmid']),'with xmid =',stack['xmid'][j], ': No data found. Return nan values throughout for this bin.')
                 continue
                 
             mask = masks[0]
