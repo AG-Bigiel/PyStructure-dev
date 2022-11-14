@@ -246,8 +246,6 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
                         rms_old = rms
                         rms = np.nanstd(prior_wo_line[np.where(prior_wo_line<3*rms_old)])
                         rms_iter += 1
-                        print(rms_old, rms)
-                        print(len(prior_wo_line[np.where(prior_wo_line<3*rms)]))
                         if len(prior_wo_line[np.where(prior_wo_line<3*rms)]) == 0:
                             # if above leads to an empty spectrum, there are probably no emission-free channels
                             # in this case, rms cannot be determined and we integrate over the full bandwidth to obtain a lower limit
@@ -339,7 +337,7 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
                 if SNR_line<3:    
                     # if window found: integrate over that
                     if np.nansum(mask)>2:
-                        stack["upplim_K_kms_"+line][j] = 3*std_line*max([1, np.sqrt(np.nansum(mask))])*abs(v[1]-v[0])
+                        stack["upplim_K_kms_"+line][j] = 3*line_uc
 
                     # if no window found: use (default) 30 km/s window
                     else:
