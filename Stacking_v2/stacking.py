@@ -21,8 +21,8 @@ warnings.filterwarnings("ignore")
 def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Database/', 
               show = False, do_smooth = False, xtype = None, 
               bin_scaling = "linear", nbins = None, xmin=None, xmax=None,
-              sn_limits = [2,4], no_detec_wdw = 30, pad_v = 100, 
-              weights_type=None, rms_type=None, line_wdw=0):
+              sn_limits = [2,4], no_detec_wdw = 30, pad_v = 100, line_wdw=0, 
+              ignore_empties=False, weights_type=None, rms_type=None):
     """
     Function converted from IDL to python
     :param fnames: String of name of the PyStructure names, e.g. "ngc5194_datbase.npy"
@@ -38,9 +38,10 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
     :param sn_limits: S/N thresholds for lower and upper mask
     :param no_detec_wdw: window size over which to integrate in case no detection is found. In km/s
     :param pad_v: in km/s range at either edges to exclude from integrating or finding the mask
+    :param line_wdw: window size where emission is expected to exlude from finding the mask. In km/s
+    :param ignore_empties: 
     :param weights_type: string name of the quantity by which to weight the stacking
     :param rms_type: can be 'iterative'
-    :param line_wdw: window size where emission is expected to exlude from finding the mask. In km/s
     """
 
     # --------------------------------------------------------------------
@@ -149,14 +150,14 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
                 vaxis = this_data["SPEC_VCHAN0_SHUFF"+prior_lines[0]] + this_data["SPEC-DELTAV_SHUFF"+prior_lines[0]] * np.arange(len(this_data["SPEC_VAL_SHUFF"+prior_lines[0]][0]))
             co21_spec = shuffled_specs["SPEC_VAL_SHUFF"+prior_lines[0]]
 
-            stack_spec = stck_spc.stack_spec(co21_spec, xvec,xtype, nbins, xmin_bin, xmax_bin, xmid_bin, weights = weights)
+            stack_spec = stck_spc.stack_spec(co21_spec, xvec,xtype, nbins, xmin_bin, xmax_bin, xmid_bin, weights = weights, ignore_empties=ignore_empties)
             stack[prior_lines[0]+"_spec_K"] = stack_spec["spec"]
 
             # Iterate over the different lines that need to be stacked
 
             for line in lines:
                 spec = shuffled_specs["SPEC_VAL_SHUFF"+line]
-                stack_spec = stck_spc.stack_spec(spec, xvec,xtype,  nbins, xmin_bin, xmax_bin, xmid_bin,weights = weights)
+                stack_spec = stck_spc.stack_spec(spec, xvec,xtype,  nbins, xmin_bin, xmax_bin, xmid_bin,weights = weights, ignore_empties=ignore_empties)
                 stack[line+"_spec_K"] = stack_spec["spec"]
 
 

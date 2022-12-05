@@ -10,7 +10,8 @@ def stack_spec(spec_ra,
                 nbins, xmin_bin, xmax_bin, xmid_bin,\
                 mask =None,\
                 use_median = False,\
-                weights = None):
+                weights = None,
+                ignore_empties=False):
 
     # Number of channels
     n_vaxis = len(spec_ra[0])
@@ -53,6 +54,9 @@ def stack_spec(spec_ra,
             image_here = spec_ra[binind,:]
             counts[:,i] = np.sum(np.isfinite(spec_ra[binind,:]), axis = 0)
             
+            # get total number of spectra in each bin
+            counts_tot = len(spec_ra[binind,:])
+            
             if use_median:
                 stacked_spec[:,i] = np.nanmedian(image_here, axis = 0)
               
@@ -60,7 +64,12 @@ def stack_spec(spec_ra,
                 if weights is not None:
                     stacked_spec[:,i] = np.nansum(weights[binind,np.newaxis]*image_here, axis = 0)/np.nansum(weights[binind])
                 else:
-                    stacked_spec[:,i] = np.nansum(image_here, axis = 0)/counts[:,i]
+                    if ignore_empties:
+                        # divide by number of channels with detection of prior
+                        stacked_spec[:,i] = np.nansum(image_here, axis = 0)/counts[:,i]
+                    else:
+                        # divide by total number of counts
+                        stacked_spec[:,i] = np.nansum(image_here, axis = 0)/counts_tot
                 
             
     #--------------------------------------------------------------------------
