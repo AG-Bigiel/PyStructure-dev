@@ -30,6 +30,7 @@ def stack_spec(spec_ra,
     #--------------------------------------------------------------------------
     stacked_spec = np.zeros((n_vaxis, nbins))*np.nan
     counts = np.zeros((n_vaxis, nbins))
+    counts_tot = np.zeros(nbins)
 
 
     #--------------------------------------------------------------------------
@@ -55,7 +56,7 @@ def stack_spec(spec_ra,
             counts[:,i] = np.sum(np.isfinite(spec_ra[binind,:]), axis = 0)
             
             # get total number of spectra in each bin
-            counts_tot = len(spec_ra[binind,:])
+            counts_tot[i] = len(spec_ra[binind,:])
             
             if use_median:
                 stacked_spec[:,i] = np.nanmedian(image_here, axis = 0)
@@ -69,7 +70,7 @@ def stack_spec(spec_ra,
                         stacked_spec[:,i] = np.nansum(image_here, axis = 0)/counts[:,i]
                     else:
                         # divide by total number of counts
-                        stacked_spec[:,i] = np.nansum(image_here, axis = 0)/counts_tot
+                        stacked_spec[:,i] = np.nansum(image_here, axis = 0)/counts_tot[i]
                 
             
     #--------------------------------------------------------------------------
@@ -77,8 +78,8 @@ def stack_spec(spec_ra,
     #--------------------------------------------------------------------------
     output = {}
     output["spec"] = stacked_spec
-
     output["counts"] = counts
+    output["counts_total"] = counts_tot
     output["xmid"] = xmid_bin
     
     return output

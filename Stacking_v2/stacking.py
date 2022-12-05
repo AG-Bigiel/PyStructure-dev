@@ -154,14 +154,12 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
             stack[prior_lines[0]+"_spec_K"] = stack_spec["spec"]
 
             # Iterate over the different lines that need to be stacked
-
             for line in lines:
                 spec = shuffled_specs["SPEC_VAL_SHUFF"+line]
                 stack_spec = stck_spc.stack_spec(spec, xvec,xtype,  nbins, xmin_bin, xmax_bin, xmid_bin,weights = weights, ignore_empties=ignore_empties)
                 stack[line+"_spec_K"] = stack_spec["spec"]
 
 
-                #print(np.shape(stack_spec["spec"]))
 
         # save some more galaxy parameters
         if is_IDL:
@@ -177,9 +175,12 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
 
         stack["vaxis_kms"] = vaxis
 
+        # number of spectra, where the prior has been detected and the spectrum was shuffled
         stack["ncounts"] = np.nanmax(stack_spec["counts"], axis = 0)
         stack["narea_kpc2"] = 37.575*(1/3600*stack["dist_mpc"]*np.pi/180)**2* \
                               np.cos(np.pi/180*stack["incl_deg"])*stack["ncounts"]
+        # number of total spectra within each bin
+        stack["ncounts_total"] = stack_spec['counts_total']
 
 
 
@@ -318,8 +319,15 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
                 else:
                     # rms of each line is the standard deviation outside of the mask
                     rms_line = np.nanstd(spec_to_integrate[np.where(mask==0)])
+                    
+                    # rescale rms for # spectra contributing to the stack vs # total spectra inside bin
+                    rms_line *= np.sqrt(stack["ncounts_total"][j]/stack["ncounts"][j])
+                    
+                    # line intensity and uncertainty
                     line_ii = np.nansum(spec_to_integrate*mask)*abs(v[1]-v[0])
                     line_uc = max([1, np.sqrt(np.nansum(mask))])*rms_line*abs(v[1]-v[0])
+                    
+                    
 
 
                 # Fill in dictionary
