@@ -22,7 +22,7 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
               show = False, do_smooth = False, xtype = None, 
               bin_scaling = "linear", nbins = None, xmin=None, xmax=None,
               sn_limits = [2,4], no_detec_wdw = 30, pad_v = 100, line_wdw=0, 
-              ignore_empties=False, weights_type=None, rms_type=None):
+              ignore_empties=False, weights_type=None, rms_type=None, trim_stackspec = True):
     """
     Function converted from IDL to python
     :param fnames: String of name of the PyStructure names, e.g. "ngc5194_datbase.npy"
@@ -39,7 +39,8 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
     :param no_detec_wdw: window size over which to integrate in case no detection is found. In km/s
     :param pad_v: in km/s range at either edges to exclude from integrating or finding the mask
     :param line_wdw: window size where emission is expected to exlude from finding the mask. In km/s
-    :param ignore_empties: 
+    :param ignore_empties:
+    :param trim_stackspec: Boolean, if true, trim the stacked spectrum to only include channels, where the overlap of all spectra is given
     :param weights_type: string name of the quantity by which to weight the stacking
     :param rms_type: can be 'iterative'
     """
@@ -124,23 +125,23 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
             shuffled_specs["SPEC_VAL_SHUFF"+line] = this_data["SPEC_VAL_SHUFF"+line]
 
 
-        # create a mask and combine for co21 and co10 at least:
-        spec_co21 = shuffled_specs["SPEC_VAL_SHUFF"+prior_lines[0]]
+        # create a mask
+        spec_prior = shuffled_specs["SPEC_VAL_SHUFF"+prior_lines[0]]
 
 
-        idnans_co21 = np.ones(len(spec_co21))
+        idnans_prior = np.ones(len(spec_prior))
 
-        for i in range(len(idnans_co21)):
-            if not sum(np.array(np.isnan(spec_co21[i]), dtype = int)) == nvaxis:
-                idnans_co21[i] = 0
+        for i in range(len(idnans_prior)):
+            if not sum(np.array(np.isnan(spec_prior[i]), dtype = int)) == nvaxis:
+                        idnans_prior[i] = 0
 
-        comb_mask = np.array(idnans_co21, dtype=int)
+        comb_mask = np.array(idnans_prior, dtype=int)
 
         for i in range(len(comb_mask)):
             if comb_mask[i] == 1:
-                spec_co21[i] = np.zeros(nvaxis)*np.nan
+                spec_prior[i] = np.zeros(nvaxis)*np.nan
 
-        shuffled_specs[prior_lines[0]+"_spec_K"]  = spec_co21
+        shuffled_specs[prior_lines[0]+"_spec_K"]  = spec_prior
 
 
         if do_smooth == False:
@@ -148,16 +149,27 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
                 vaxis = this_data[0]["SPEC_VCHAN0_SHUFF"+prior_lines[0]] + this_data[0]["SPEC_DELTAV_SHUFF"+prior_lines[0]] * np.arange(len(this_data[0]["SPEC_VAL_SHUFF"+prior_lines[0]]))
             else:
                 vaxis = this_data["SPEC_VCHAN0_SHUFF"+prior_lines[0]] + this_data["SPEC-DELTAV_SHUFF"+prior_lines[0]] * np.arange(len(this_data["SPEC_VAL_SHUFF"+prior_lines[0]][0]))
-            co21_spec = shuffled_specs["SPEC_VAL_SHUFF"+prior_lines[0]]
+            prior_spec = shuffled_specs["SPEC_VAL_SHUFF"+prior_lines[0]]
 
-            stack_spec = stck_spc.stack_spec(co21_spec, xvec,xtype, nbins, xmin_bin, xmax_bin, xmid_bin, weights = weights, ignore_empties=ignore_empties)
+            stack_spec = stck_spc.stack_spec(prior_spec, xvec,xtype, nbins, xmin_bin, xmax_bin, xmid_bin, weights = weights, ignore_empties=ignore_empties, trim_stackspec=trim_stackspec)
             stack[prior_lines[0]+"_spec_K"] = stack_spec["spec"]
-
+            
+            
+            #save ncounts of prior line
+            stack["counts_"+prior_lines[0]] =stack_spec["counts"]
+            # number of spectra, where the prior has been detected and the spectrum was shuffled
+            stack["ncounts"] = np.nanmax(stack_spec["counts"], axis = 0)
+            stack["narea_kpc2"] = 37.575*(1/3600*stack["dist_mpc"]*np.pi/180)**2* \
+                              np.cos(np.pi/180*stack["incl_deg"])*stack["ncounts"]
+            # number of total spectra within each bin
+            stack["ncounts_total"] = stack_spec['counts_total']
+            
             # Iterate over the different lines that need to be stacked
             for line in lines:
                 spec = shuffled_specs["SPEC_VAL_SHUFF"+line]
-                stack_spec = stck_spc.stack_spec(spec, xvec,xtype,  nbins, xmin_bin, xmax_bin, xmid_bin,weights = weights, ignore_empties=ignore_empties)
+                stack_spec = stck_spc.stack_spec(spec, xvec,xtype,  nbins, xmin_bin, xmax_bin, xmid_bin,weights = weights, ignore_empties=ignore_empties, trim_stackspec=trim_stackspec)
                 stack[line+"_spec_K"] = stack_spec["spec"]
+                stack["counts_"+line] =stack_spec["counts"]
 
 
 
@@ -175,12 +187,7 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
 
         stack["vaxis_kms"] = vaxis
 
-        # number of spectra, where the prior has been detected and the spectrum was shuffled
-        stack["ncounts"] = np.nanmax(stack_spec["counts"], axis = 0)
-        stack["narea_kpc2"] = 37.575*(1/3600*stack["dist_mpc"]*np.pi/180)**2* \
-                              np.cos(np.pi/180*stack["incl_deg"])*stack["ncounts"]
-        # number of total spectra within each bin
-        stack["ncounts_total"] = stack_spec['counts_total']
+        
 
 
 

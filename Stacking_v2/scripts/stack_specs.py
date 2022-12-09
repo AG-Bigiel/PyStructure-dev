@@ -11,7 +11,8 @@ def stack_spec(spec_ra,
                 mask =None,\
                 use_median = False,\
                 weights = None,
-                ignore_empties=False):
+                ignore_empties=False,
+                trim_stackspec = False):
 
     # Number of channels
     n_vaxis = len(spec_ra[0])
@@ -42,7 +43,7 @@ def stack_spec(spec_ra,
         binind = np.where(np.logical_and(np.logical_and(x >= xmin_bin[i],x<xmax_bin[i]),\
                           mask == 1))[0]
         binct = len(binind)
-       
+        
         if binct == 0:
             continue
         elif binct == 1:
@@ -52,27 +53,35 @@ def stack_spec(spec_ra,
         else:
             
             # Average together all the SPECTRA
-            image_here = spec_ra[binind,:]
+            spec_list = spec_ra[binind,:]
             counts[:,i] = np.sum(np.isfinite(spec_ra[binind,:]), axis = 0)
             
             # get total number of spectra in each bin
             counts_tot[i] = len(spec_ra[binind,:])
             
             if use_median:
-                stacked_spec[:,i] = np.nanmedian(image_here, axis = 0)
+                stacked_spec[:,i] = np.nanmedian(spec_list, axis = 0)
               
             else:
                 if weights is not None:
-                    stacked_spec[:,i] = np.nansum(weights[binind,np.newaxis]*image_here, axis = 0)/np.nansum(weights[binind])
+                    stacked_spec[:,i] = np.nansum(weights[binind,np.newaxis]*spec_list, axis = 0)/np.nansum(weights[binind])
                 else:
                     if ignore_empties:
                         # divide by number of channels with detection of prior
-                        stacked_spec[:,i] = np.nansum(image_here, axis = 0)/counts[:,i]
+                        stacked_spec[:,i] = np.nansum(spec_list, axis = 0)/counts[:,i]
                     else:
                         # divide by total number of counts
-                        stacked_spec[:,i] = np.nansum(image_here, axis = 0)/counts_tot[i]
+                        stacked_spec[:,i] = np.nansum(spec_list, axis = 0)/counts_tot[i]
                 
-            
+                if trim_stackspec:
+                    # trim the edges of the spectrum to only include channels where the overlap
+                    # of all spectrea is given
+                    id_trim = np.where(counts[:,i]<np.nanmax(counts[:,i]))
+                    
+                    if len(id_trim[0])==len(stacked_spec[:,i]):
+                        print("[WARNING]\tNo spectral overlap for certain spectra. Turn-off Trimming.")
+                    stacked_spec[:,i][id_trim]=np.nan
+                        
     #--------------------------------------------------------------------------
     # Return Stacked Spectrum
     #--------------------------------------------------------------------------
