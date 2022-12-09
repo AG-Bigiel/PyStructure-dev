@@ -150,27 +150,32 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
             else:
                 vaxis = this_data["SPEC_VCHAN0_SHUFF"+prior_lines[0]] + this_data["SPEC-DELTAV_SHUFF"+prior_lines[0]] * np.arange(len(this_data["SPEC_VAL_SHUFF"+prior_lines[0]][0]))
             prior_spec = shuffled_specs["SPEC_VAL_SHUFF"+prior_lines[0]]
+            #the non-shuffled spectra
+            prior_spec_orig = this_data["SPEC_VAL_"+prior_lines[0]]
 
-            stack_spec = stck_spc.stack_spec(prior_spec, xvec,xtype, nbins, xmin_bin, xmax_bin, xmid_bin, weights = weights, ignore_empties=ignore_empties, trim_stackspec=trim_stackspec)
+            stack_spec = stck_spc.stack_spec(prior_spec, xvec,xtype, nbins, xmin_bin, xmax_bin, xmid_bin, weights = weights, ignore_empties=ignore_empties, trim_stackspec=trim_stackspec, spec_orig = prior_spec_orig)
             stack[prior_lines[0]+"_spec_K"] = stack_spec["spec"]
             
             
             #save ncounts of prior line
             stack["counts_"+prior_lines[0]] =stack_spec["counts"]
+            stack["ncounts_"+prior_lines[0]] =np.nanmax(stack_spec["counts"], axis=0)
             # number of spectra, where the prior has been detected and the spectrum was shuffled
-            stack["ncounts"] = np.nanmax(stack_spec["counts"], axis = 0)
+            stack["ncounts_total_"+prior_lines[0]] = stack_spec["counts_total_spec"]
+            stack["nbins"] = stack_spec["counts_total"]
             stack["narea_kpc2"] = 37.575*(1/3600*stack["dist_mpc"]*np.pi/180)**2* \
-                              np.cos(np.pi/180*stack["incl_deg"])*stack["ncounts"]
-            # number of total spectra within each bin
-            stack["ncounts_total"] = stack_spec['counts_total']
+                              np.cos(np.pi/180*stack["incl_deg"])*stack["ncounts_total_"+prior_lines[0]]
             
             # Iterate over the different lines that need to be stacked
             for line in lines:
                 spec = shuffled_specs["SPEC_VAL_SHUFF"+line]
-                stack_spec = stck_spc.stack_spec(spec, xvec,xtype,  nbins, xmin_bin, xmax_bin, xmid_bin,weights = weights, ignore_empties=ignore_empties, trim_stackspec=trim_stackspec)
+                #the non-shuffled spectra
+                spec_orig = this_data["SPEC_VAL_"+line]
+                stack_spec = stck_spc.stack_spec(spec, xvec,xtype,  nbins, xmin_bin, xmax_bin, xmid_bin,weights = weights, ignore_empties=ignore_empties, trim_stackspec=trim_stackspec, spec_orig = spec_orig)
                 stack[line+"_spec_K"] = stack_spec["spec"]
                 stack["counts_"+line] =stack_spec["counts"]
-
+                stack["ncounts_"+line] =np.nanmax(stack_spec["counts"], axis=0)
+                stack["ncounts_total_"+line] = stack_spec["counts_total_spec"]
 
 
         # save some more galaxy parameters
@@ -328,7 +333,8 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
                     rms_line = np.nanstd(spec_to_integrate[np.where(mask==0)])
                     
                     # rescale rms for # spectra contributing to the stack vs # total spectra inside bin
-                    rms_line *= np.sqrt(stack["ncounts_total"][j]/stack["ncounts"][j])
+                    if not ignore_empties:
+                        rms_line *= np.sqrt(stack["ncounts_total_"+line][j]/stack["ncounts_"+line][j])
                     
                     # line intensity and uncertainty
                     line_ii = np.nansum(spec_to_integrate*mask)*abs(v[1]-v[0])

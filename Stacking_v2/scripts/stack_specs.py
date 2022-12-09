@@ -12,7 +12,8 @@ def stack_spec(spec_ra,
                 use_median = False,\
                 weights = None,
                 ignore_empties=False,
-                trim_stackspec = False):
+                trim_stackspec = False,
+                spec_orig = None):
 
     # Number of channels
     n_vaxis = len(spec_ra[0])
@@ -31,8 +32,12 @@ def stack_spec(spec_ra,
     #--------------------------------------------------------------------------
     stacked_spec = np.zeros((n_vaxis, nbins))*np.nan
     counts = np.zeros((n_vaxis, nbins))
+    
+    #count the number of pixels per bin
     counts_tot = np.zeros(nbins)
-
+    
+    #count the number of pixels per bin that contain an actual observation
+    counts_tot_spec = np.zeros(nbins)
 
     #--------------------------------------------------------------------------
     # Loop over bins
@@ -42,22 +47,23 @@ def stack_spec(spec_ra,
         
         binind = np.where(np.logical_and(np.logical_and(x >= xmin_bin[i],x<xmax_bin[i]),\
                           mask == 1))[0]
-        binct = len(binind)
         
-        if binct == 0:
+        # get total number of spectra in each bin
+        counts_tot[i] = len(binind)
+        
+        if counts_tot[i] == 0:
             continue
-        elif binct == 1:
+        elif counts_tot[i] == 1:
             stacked_spec[:,i] = spec_ra[binind,:]
             counts[:,i] = np.isfinite(spec_ra[binind,:])
+            counts_tot_spec[i] = np.nansum(np.nansum(spec_orig[binind,:], axis=1)!=0)
             continue
         else:
             
             # Average together all the SPECTRA
             spec_list = spec_ra[binind,:]
             counts[:,i] = np.sum(np.isfinite(spec_ra[binind,:]), axis = 0)
-            
-            # get total number of spectra in each bin
-            counts_tot[i] = len(spec_ra[binind,:])
+            counts_tot_spec[i] = np.nansum(np.nansum(spec_orig[binind,:], axis=1)!=0)
             
             if use_median:
                 stacked_spec[:,i] = np.nanmedian(spec_list, axis = 0)
@@ -71,11 +77,11 @@ def stack_spec(spec_ra,
                         stacked_spec[:,i] = np.nansum(spec_list, axis = 0)/counts[:,i]
                     else:
                         # divide by total number of counts
-                        stacked_spec[:,i] = np.nansum(spec_list, axis = 0)/counts_tot[i]
+                        stacked_spec[:,i] = np.nansum(spec_list, axis = 0)/counts_tot_spec[i]
                 
                 if trim_stackspec:
                     # trim the edges of the spectrum to only include channels where the overlap
-                    # of all spectrea is given
+                    # of all spectrea is ensured
                     id_trim = np.where(counts[:,i]<np.nanmax(counts[:,i]))
                     
                     if len(id_trim[0])==len(stacked_spec[:,i]):
@@ -89,6 +95,7 @@ def stack_spec(spec_ra,
     output["spec"] = stacked_spec
     output["counts"] = counts
     output["counts_total"] = counts_tot
+    output["counts_total_spec"] = counts_tot_spec
     output["xmid"] = xmid_bin
     
     return output
