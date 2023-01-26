@@ -17,4 +17,4 @@ There exist two modes how the PyStacker code can be utilized:
 > **Note:** You can provide optional parameters (list: TBD). You can also simply remove these parameters (or add pre-existing optional parameters) at the end of the configure file.
 
 2. **Only with 3D Fits Datacubes**
-
+> The code now also works without a pre-existing PyStructure database. 3D Datacubes are required as input. These have to be convolved and regridded to the same resolution and the same grid. In addition, a velocity map with which to shuffle the spectra, must be provided. It can be executed by adjusting the parameters in the `run_3DCube.conf`
