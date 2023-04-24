@@ -235,7 +235,11 @@ def sample_at_res(in_data,
                 trg_hdr["CRVAL3"] = new_vaxis[0] + (trg_hdr["CRPIX3"]-1)*trg_hdr["CDELT3"]
             
         wcs_target = WCS(trg_hdr)
-        data_out, footprint = reproject_interp((data,hdr_out), trg_hdr)
+        #need to delete the rest frequency for latest astropy version
+        del hdr_out["RESTF*"]
+        del trg_hdr["RESTF*"]
+        
+        data_out, footprint = reproject_interp((data,hdr_out), trg_hdr, order="nearest-neighbor")
         data = data_out
         
         # Save the convloved file as a fits file
