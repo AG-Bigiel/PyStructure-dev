@@ -34,10 +34,11 @@ def stack_pix_by_x(struct, lines, xtype, x_vec ,xmin, xmax ,galaxy, binsize = No
     # WORK OUT THE MAXIMUM FOR THE BINS
 
     #First construct the logarithmic bins for xtype = sfr
-
+    
     if xtype in ['sfr',"12co10","12co21","PACS","sigtir","TIR_co21","TIR_co10"]:
 
         deltax = (xmax - xmin)
+        
         if binsize is None:
             #    ... DEFAULT TO 10 BINS
             print("[WARNING]\t No binsize specified. Making 10 bins.")
@@ -48,6 +49,8 @@ def stack_pix_by_x(struct, lines, xtype, x_vec ,xmin, xmax ,galaxy, binsize = No
         xmin_bin = 10**(np.arange(nbins)*binsize)*10**xmin
         xmax_bin = xmin_bin*10**binsize #< 10**xmax_in
         xmid_bin = xmin_bin*10**(binsize*0.5)
+        
+        
     else:
         #WORK OUT THE MINIMUM FOR THE BINS
 
@@ -76,16 +79,17 @@ def stack_pix_by_x(struct, lines, xtype, x_vec ,xmin, xmax ,galaxy, binsize = No
     out_tags = list(out_struc.keys())
 
     maskind = np.where(mask)
+    
+    
     # Loop over tag names
     for i in range(ntag):
-
+        
         if not stack_tags["tag_in"][i] in list(data_tags):
             continue
         else:
             bins_output = prof.bin_prof(x_vec[maskind], struct[stack_tags["tag_in"][i]][maskind],\
                                  xmin_in = xmin, xmax_in = xmax, binsize_in = binsize, oversamp = 1. )
-
-
+        
         if median == "median":
             out_struc[stack_tags["tag_in"][i]] = bins_output["medprof"]
         else:
@@ -94,5 +98,4 @@ def stack_pix_by_x(struct, lines, xtype, x_vec ,xmin, xmax ,galaxy, binsize = No
     out_struc['xmin'] = xmin_bin
     out_struc['xmax'] = xmax_bin
     out_struc['xmid'] = xmid_bin
-
     return out_struc
