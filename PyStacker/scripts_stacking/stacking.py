@@ -139,7 +139,7 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
             if comb_mask[i] == 1:
                 spec_prior[i] = np.zeros(nvaxis)*np.nan
 
-        shuffled_specs[prior_lines[0]+"_spec_K"]  = spec_prior
+        shuffled_specs["spec_K"+prior_lines[0]]  = spec_prior
 
 
         if do_smooth == False:
@@ -152,7 +152,7 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
             prior_spec_orig = this_data["SPEC_VAL_"+prior_lines[0]]
 
             stack_spec = stck_spc.stack_spec(prior_spec, xvec,xtype, nbins, xmin_bin, xmax_bin, xmid_bin, weights = weights, ignore_empties=ignore_empties, trim_stackspec=trim_stackspec, spec_orig = prior_spec_orig)
-            stack[prior_lines[0]+"_spec_K"] = stack_spec["spec"]
+            stack["spec_K_"+prior_lines[0]] = stack_spec["spec"]
             
             
             #save ncounts of prior line
@@ -170,7 +170,7 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
                 #the non-shuffled spectra
                 spec_orig = this_data["SPEC_VAL_"+line]
                 stack_spec = stck_spc.stack_spec(spec, xvec,xtype,  nbins, xmin_bin, xmax_bin, xmid_bin,weights = weights, ignore_empties=ignore_empties, trim_stackspec=trim_stackspec, spec_orig = spec_orig)
-                stack[line+"_spec_K"] = stack_spec["spec"]
+                stack["spec_K_"+line] = stack_spec["spec"]
                 stack["counts_"+line] =stack_spec["counts"]
                 stack["ncounts_"+line] =np.nanmax(stack_spec["counts"], axis=0)
                 stack["ncounts_total_"+line] = stack_spec["counts_total_spec"]
@@ -230,7 +230,7 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
             sn_up = sn_limits[1]
             for prior_line in prior_lines:
 
-                prior = copy.copy(stack[prior_line+"_spec_K"][:,j])
+                prior = copy.copy(stack["spec_K_"+prior_line][:,j])
                 
                 # Skip bin if empty
                 if np.nansum(prior) == 0:
@@ -288,7 +288,7 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
                 for kk in range(10):
                     mask = np.array(((mask + np.roll(mask, 1) + np.roll(mask, -1)) >= 1), dtype = int)*low_mask
 
-                prior_specs.append(stack[prior_line+"_spec_K"][:,j])
+                prior_specs.append(stack["spec_K_"+prior_line][:,j])
                 masks.append(mask)
                 rms_values.append(rms)
 
@@ -315,7 +315,7 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
             for line in lines+prior_lines:
 
                 # Fit the line
-                spec_to_integrate = stack[line+"_spec_K"][:,j]
+                spec_to_integrate = stack["spec_K_"+line][:,j]
                 spec_to_integrate[spec_to_integrate == 0] = np.nan
 
                 #calculate rms of line
