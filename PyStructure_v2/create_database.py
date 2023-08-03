@@ -552,6 +552,7 @@ def create_database(just_source=None, quiet=False, conf=False):
             this_tag_name = 'SPEC_VCHAN0_'+cubes["line_name"][jj].upper()
             if this_tag_name in this_data:
                 this_data[this_tag_name] = this_hdr["CRVAL3"]
+                this_data['SPEC_CRPIX_'+cubes["line_name"][jj].upper()] = this_hdr["CRPIX3"]
             else:
                 print("[ERROR]\t  I had trouble matching tag "+this_tag_name+
                       " to the database.")
