@@ -93,8 +93,8 @@ def add_spec_to_struct (struct={}, line="", unit="", desc="", n_chan = 500):
     empty_spec = np.zeros(n_chan)*np.nan
 
     int_name = "SPEC_VAL_"+line.upper()
-    vchan0_name = "SPEC_VCHAN0_"+line.upper()
-    deltav_name = "SPEC_DELTAV_"+line.upper()
+    #vchan0_name = "SPEC_VCHAN0_"+line.upper()
+    #deltav_name = "SPEC_DELTAV_"+line.upper()
     unit_name = "SPEC_UNIT_"+line.upper()
     desc_name = "SPEC_DESC_"+line.upper()
     #tpeak_name = "SPEC_TPEAK_"+line.upper()
@@ -109,8 +109,8 @@ def add_spec_to_struct (struct={}, line="", unit="", desc="", n_chan = 500):
         print("[WARNING]\t Resetting values and returning.")
 
     new_struct[int_name] = empty_spec
-    new_struct[vchan0_name] = np.nan
-    new_struct[deltav_name]  = np.nan
+    #new_struct[vchan0_name] = np.nan
+    #new_struct[deltav_name]  = np.nan
     new_struct[unit_name]  = unit
     new_struct[desc_name]  = desc
     #new_struct[tpeak_name]  = np.nan

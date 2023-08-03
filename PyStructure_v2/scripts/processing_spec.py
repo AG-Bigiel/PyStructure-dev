@@ -16,7 +16,7 @@ def construct_mask(ref_line, this_data, SN_processing):
     n_pts = np.shape(ref_line_data)[0]
     n_chan = np.shape(ref_line_data)[1]
 
-    line_vaxis = this_data['SPEC_VCHAN0_'+ref_line]+np.arange(n_chan)*this_data['SPEC_DELTAV_'+ref_line]
+    line_vaxis = this_data['SPEC_VCHAN0_'+ref_line]+(np.arange(n_chan)-(1-this_data['SPEC_CRPIX_'+ref_line]))*this_data['SPEC_DELTAV_'+ref_line]
 
     line_vaxis = line_vaxis/1000 #to km/s
     #Estimate rms
@@ -183,8 +183,8 @@ def process_spectra(sources_data,
             n_chan = dim_sz[1]
             this_v0 = this_data["SPEC_VCHAN0_"+line_name]
             this_deltav = this_data["SPEC_DELTAV_"+line_name]
-
-            this_vaxis = (this_v0 + np.arange(n_chan)*this_deltav)/1000 #to km/s
+            this_crpix = this_data["SPEC_CRPIX_"+line_name]
+            this_vaxis = (this_v0 + (np.arange(n_chan)-(1-this_crpix))*this_deltav)/1000 #to km/s
 
 
             shuffled_mask = shuffle(spec = mask, \
@@ -255,12 +255,12 @@ def process_spectra(sources_data,
             tag_i = "SPEC_VAL_SHUFF" + line_name
             tag_v0 = "SPEC_VCHAN0_SHUFF" + line_name
             tag_deltav = "SPEC-DELTAV_SHUFF" + line_name
-
+            
 
             this_data[tag_i] = shuffled_line
             this_data[tag_v0] = new_vaxis[0]
             this_data[tag_deltav] = (new_vaxis[1] - new_vaxis[0])
-
+            this_data["SPEC_CRPIX_SHUFF" + line_name] = 1
 
         np.save(fname[ii], this_data)
 

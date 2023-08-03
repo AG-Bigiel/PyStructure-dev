@@ -38,11 +38,15 @@ MODIFICATION HISTORY
             - Include Spectral Smooting and Convolving for data with significantly different spectral resolution.
     - v2.1.1. October 2022
             - Save moment maps as fits file
+    - v3.0.0. August 2023
+            - Clean up: Remove unnecessary keys
+            - Improve masking -> Remove spurious spatial spikes
+            
 
 """
 __author__ = "J. den Brok"
 __version__ = "v2.1.1"
-__email__ = "jdenbrok@astro.uni-bonn.de"
+__email__ = "jakob.den_brok@cfa.harvard.edu"
 __credits__ = ["L. Neumann","M. Jimenez-Donaire", "E. Rosolowsky","A. Leroy ", "I. Beslic"]
 
 
@@ -368,7 +372,8 @@ def create_database(just_source=None, quiet=False, conf=False):
             target_res_as = target_res
         else:
             print('[ERROR]\t Resolution keyword has to be "native","angular" or "physical".')
-
+        
+        
         # Determine
         spacing = target_res_as / 3600. / spacing_per_beam
         
@@ -398,6 +403,12 @@ def create_database(just_source=None, quiet=False, conf=False):
                 #this_data.setdefault(key, []).append(empty_structure[key])
                 this_data[key]=empty_structure[key]
             
+        this_tag_name = 'SPEC_VCHAN0'
+        this_data[this_tag_name] = ov_hdr["CRVAL3"]
+        this_tag_name = 'SPEC_DELTAV'
+        this_data[this_tag_name] = ov_hdr["CDELT3"]
+        this_tag_name = 'SPEC_CRPIX'
+        this_data[this_tag_name] = ov_hdr["CRPIX3"]
         # Some basic parameters for each galaxy:
         this_data["source"] = this_source
         this_data["ra_deg"] = samp_ra
@@ -550,21 +561,7 @@ def create_database(just_source=None, quiet=False, conf=False):
                 this_data[this_tag_name][kk] = temp_spec
 
 
-            this_tag_name = 'SPEC_VCHAN0_'+cubes["line_name"][jj].upper()
-            if this_tag_name in this_data:
-                this_data[this_tag_name] = this_hdr["CRVAL3"]
-            else:
-                print("[ERROR]\t  I had trouble matching tag "+this_tag_name+
-                      " to the database.")
-                continue
-            this_tag_name = 'SPEC_DELTAV_'+cubes["line_name"][jj].upper()
-            if this_tag_name in this_data:
-                this_data[this_tag_name] = this_hdr["CDELT3"]
-            else:
-                print("[ERROR]\t  I had trouble matching tag "+this_tag_name+
-                      " to the database.")
-                continue
-
+            
 
             #------------------------------------------------------------------
             # Added: Check, if in addition to 3D cube, a customized 2D map is provided
