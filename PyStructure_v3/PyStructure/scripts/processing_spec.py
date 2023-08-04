@@ -16,7 +16,7 @@ def construct_mask(ref_line, this_data, SN_processing):
     n_pts = np.shape(ref_line_data)[0]
     n_chan = np.shape(ref_line_data)[1]
 
-    line_vaxis = this_data['SPEC_VCHAN0']+(np.arange(n_chan)-(1-this_data['SPEC_CRPIX']))*this_data['SPEC_DELTAV']
+    line_vaxis = this_data['SPEC_VCHAN0']+(np.arange(n_chan)-(this_data['SPEC_CRPIX'])-1)*this_data['SPEC_DELTAV']
 
     line_vaxis = line_vaxis/1000 #to km/s
     #Estimate rms
