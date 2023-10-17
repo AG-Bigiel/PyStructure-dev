@@ -117,12 +117,12 @@ def process_spectra(sources_data,
             n_mask = np.min([n_lines,ref_line_method])
             print("[INFO]\tUsing first "+str(n_mask+1)+" lines as prior")
         if n_mask>0:
-            for n_mask_i in range(1,n_mask):
+            for n_mask_i in range(1,n_mask+1):
                 line_i = lines_data["line_name"][n_mask_i].upper()
                 mask_i, ref_line_vmean_i, ref_line_vaxis_i = construct_mask(line_i, this_data, SN_processing)
                 this_data["SPEC_MASK_"+line_i]= mask_i
                 this_data["INT_VAL_V"+line_i] = ref_line_vmean_i
-
+                
                 # add mask to existing mask
                 mask = mask | mask_i
                 
