@@ -135,9 +135,9 @@ def sample_at_res(in_data,
             
         if abs(hdr["CDELT3"])<200:
             print("[INFO]\t Line Cube in km/s, converting to m/s.")
-            hdr["CDELT3"] = 1000 * hdr["CDELT3"]
-            hdr["CRVAL3"] = 1000 * hdr["CRVAL3"]
-            hdr["CUNIT3"] = "m/s"
+            hdr_out["CDELT3"] = 1000 * hdr["CDELT3"]
+            hdr_out["CRVAL3"] = 1000 * hdr["CRVAL3"]
+            hdr_out["CUNIT3"] = "m/s"
         
         #check if cube vaxis is inverted (want delta v>0):
         if target_hdr["CDELT3"]<0:
@@ -150,9 +150,9 @@ def sample_at_res(in_data,
         if hdr["CDELT3"]<0:
             print("[INFO]\t Line Cube has invertied vaxis. Re-inverting...")
             vaxis_inv = get_vaxis(hdr)
-            hdr["CDELT3"] = -1* hdr["CDELT3"]
-            hdr["CRPIX3"] = 1
-            hdr["CRVAL3"] = vaxis_inv[-1]
+            hdr_out["CDELT3"] = -1* hdr["CDELT3"]
+            hdr_out["CRPIX3"] = 1
+            hdr_out["CRVAL3"] = vaxis_inv[-1]
             
             #flip the cube
             data = np.flip(data, axis=0)
