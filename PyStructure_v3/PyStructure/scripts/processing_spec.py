@@ -8,6 +8,7 @@ from structure_addition import *
 from shuffle_spec import *
 
 
+
 def construct_mask(ref_line, this_data, SN_processing):
     """
     Function to construct the mask based on high and low SN cut
