@@ -1,5 +1,5 @@
 import numpy as np
-import idlsave
+from scipy.io import readsav as read_idl
 import pandas as pd
 import stacking_func as func
 import stack_specs as stck_spc
@@ -70,7 +70,7 @@ def get_stack(fnames, prior_lines, lines, dir_save, dir_data ='./../../data/Data
         
         is_IDL = False
         if ".idl" in file_ext:
-            struct = idlsave.read(file, verbose=False, python_dict=True)
+            struct = read_idl(file, verbose=False, python_dict=True)
             this_data = struct["this_data"]
             is_IDL = True
         elif ".npy" in file_ext:
