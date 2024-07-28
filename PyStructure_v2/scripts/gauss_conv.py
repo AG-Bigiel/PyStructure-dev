@@ -263,7 +263,7 @@ def conv_with_gauss(in_data,
     
     if kern_size > dim_x or kern_size > dim_y:
         print("[Warning]\t PSF is very big compared to image.")
-        kern_size = np.int(np.floor(min(dim_x,dim_y)/2-2)*2 + 1)
+        kern_size = int(np.floor(min(dim_x,dim_y)/2-2)*2 + 1)
 
     # Build the PSF based on the kernel calculation. Note that the units
     # are pixels and the rotation associated with the position is taken to
