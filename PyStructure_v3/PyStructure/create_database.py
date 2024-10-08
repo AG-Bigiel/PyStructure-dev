@@ -21,11 +21,11 @@ MODIFICATION HISTORY
 
     - v1.1.1 26 October 2020: More stable version. Several bugs fixed.
             - Used by whole Bonn group
-    
+
     - v1.2.1 January 2022
             - Implemented customization of reference line for masking.
               Now several lines can be defined for the mask creation
-    
+
     - v1.2.2 January 2022
             - Implement Moment 1, Moment 2 and EW calculation
             - Restructured INT and SPEC keys (Mom maps now in INT keys)
@@ -41,7 +41,7 @@ MODIFICATION HISTORY
     - v3.0.0. August 2023
             - Clean up: Remove unnecessary keys
             - Improve masking -> Remove spurious spatial spikes
-            
+
 
 """
 __author__ = "J. den Brok"
@@ -188,7 +188,7 @@ def empire_record_header():
     return new_structure_empire
 
 
-def create_temps(conf_file):
+def create_temps(conf_file, load_finestructure):
     """
     Separeate the config file into variables, band and cube list
     """
@@ -196,9 +196,10 @@ def create_temps(conf_file):
     py_input ='./Temp_Files/conf_Py.py'
     band_f = './Temp_Files/band_list_temp.txt'
     cube_f = './Temp_Files/cube_list_temp.txt'
-    
-    with open(conf_file,'r') as firstfile, open(py_input,'a') as secondfile, open(band_f,'a') as third, open(cube_f,'a') as fourth:
-      
+    fine_f = './Temp_Files/finestructure_list_temp.txt'
+
+    with open(conf_file,'r') as firstfile, open(py_input,'a') as secondfile, open(band_f,'a') as third, open(cube_f,'a') as fourth, open(fine_f,'a') as fifth:
+
         # read content from first file
         for line in firstfile:
             # append content to second file
@@ -206,17 +207,22 @@ def create_temps(conf_file):
                 loc = 1
             if "Define Cubes" in line:
                 loc = 2
-        
+            if "Define Finestructure" in line:
+                loc = 3
+                load_finestructure = True
+
             if loc == 0:
                 secondfile.write(line)
             elif loc ==1:
                 third.write(line)
             elif loc ==2:
                 fourth.write(line)
-                
-    return band_f, cube_f
+            elif loc ==3:
+                fifth.write(line)
 
-def create_database(just_source=None, quiet=False, conf=False):
+    return band_f, cube_f, load_finestructure
+
+def create_database(just_source=None, quiet=False, conf=False, load_finestructure=False):
     """
     Function that generates a python dictionary containing a hexagonal grid.
     :param just_source: String name of a source, if one wants only one galaxy
@@ -232,17 +238,17 @@ def create_database(just_source=None, quiet=False, conf=False):
                   "r25", "e_r25"]
     glxy_data = pd.read_csv(geom_file, sep = "\t",names = names_glxy,
                             comment = "#")
-    
+
     #define list of sources (need to differentiate between conf file input and default)
     if conf:
         if isinstance(sources, tuple):
             galaxy_list = list(sources)
         else:
             galaxy_list = [sources]
-        
+
     else:
         galaxy_list = list(glxy_data["galaxy"])
-    
+
     n_sources = len(galaxy_list)
     # -----------------------------------------------------------------
     # GENERATE THE EMPTY DATA STRUCTURE
@@ -277,7 +283,7 @@ def create_database(just_source=None, quiet=False, conf=False):
                                          line=cubes["line_name"][ii],
                                          unit=cubes["line_unit"][ii],
                                          desc=cubes["line_desc"][ii])
-        
+
         # if we provide a cube for which we already have the 2D map, include it as a band
         if not cubes["band_ext"].isnull()[ii]:
             empty_structure = add_band_to_struct(struct=empty_structure,
@@ -297,22 +303,22 @@ def create_database(just_source=None, quiet=False, conf=False):
     fnames=[""]*n_sources   #filename save for galaxy
     overlay_hdr_list = []
     overlay_slice_list = []
-    
+
     for ii in range(n_sources):
         #if config file provided, use the list of galaxies provided therein
-        
+
         this_source = galaxy_list[ii]
-        
+
         if not this_source in list(glxy_data["galaxy"]):
             run_success[ii]=False
 
             print("[ERROR]\t "+this_source+" Not in galaxy table.")
 
             continue
-            
+
         #assign correct index of list and input galaxy (relevant for index file)
         ii_list = np.where(np.array(glxy_data["galaxy"])==this_source)[0][0]
-        
+
 
         if not just_source is None:
             if this_source != just_source:
@@ -346,8 +352,8 @@ def create_database(just_source=None, quiet=False, conf=False):
 
 
         ov_cube,ov_hdr = fits.getdata(overlay_fname, header = True)
-        
-       
+
+
         #check, that cube is not 4D
         if ov_hdr["NAXIS"]==4:
             run_success[ii]=False
@@ -355,10 +361,10 @@ def create_database(just_source=None, quiet=False, conf=False):
             overlay_slice_list.append("")
             print("[ERROR]\t 4D cube provided. Need 3D overlay. Skipping "+this_source)
             continue
-            
+
         #add slice of overlay
         overlay_slice_list.append(ov_cube[ov_hdr["NAXIS3"]//2,:,:])
-        
+
         this_vaxis_ov = make_axes(ov_hdr, vonly = True)
         #mask = total(finite(hcn_cube),3) ge 1
         mask = np.sum(np.isfinite(ov_cube), axis = 0)>=1
@@ -372,11 +378,11 @@ def create_database(just_source=None, quiet=False, conf=False):
             target_res_as = target_res
         else:
             print('[ERROR]\t Resolution keyword has to be "native","angular" or "physical".')
-        
-        
+
+
         # Determine
         spacing = target_res_as / 3600. / spacing_per_beam
-        
+
         samp_ra, samp_dec = make_sampling_points(
                              ra_ctr = glxy_data["ra_ctr"][ii_list],
                              dec_ctr = glxy_data["dec_ctr"][ii_list],
@@ -397,12 +403,12 @@ def create_database(just_source=None, quiet=False, conf=False):
         # The following lines do this_data=replicate(empty_struct, 1)
 
         this_data = {}
-        
+
         #for n in range(n_pts):
         for key in empty_structure.keys():
                 #this_data.setdefault(key, []).append(empty_structure[key])
                 this_data[key]=empty_structure[key]
-            
+
         this_tag_name = 'SPEC_VCHAN0'
         this_data[this_tag_name] = ov_hdr["CRVAL3"]
         this_tag_name = 'SPEC_DELTAV'
@@ -550,7 +556,7 @@ def create_database(just_source=None, quiet=False, conf=False):
                 continue
 
             #this_line_hdr = fits.getheader(this_line_file)
-            
+
             this_vaxis = make_axes(this_hdr, vonly = True)
             sz_this_spec = np.shape(this_spec)
             n_chan = sz_this_spec[1]
@@ -561,7 +567,7 @@ def create_database(just_source=None, quiet=False, conf=False):
                 this_data[this_tag_name][kk] = temp_spec
 
 
-            
+
 
             #------------------------------------------------------------------
             # Added: Check, if in addition to 3D cube, a customized 2D map is provided
@@ -649,6 +655,8 @@ def create_database(just_source=None, quiet=False, conf=False):
                     ref_line,
                     SN_processing,
                     [mom_thresh,mom2_method],
+                    just_source = just_source,
+                    load_finestructure=load_finestructure
                     )
 
     #Open the PyStructure and Save as FITS File
@@ -659,7 +667,7 @@ def create_database(just_source=None, quiet=False, conf=False):
         # Warning
         if spacing_per_beam < 4:
             print('[WARNING]\t Spacing per beam too small for proper resampling to pixel grid.')
-    
+
         #iterate over the individual sources
         save_mom_to_fits(fnames,
                          cubes,
@@ -669,7 +677,7 @@ def create_database(just_source=None, quiet=False, conf=False):
                          overlay_slice_list,
                          folder_savefits,
                         target_res_as)
-    
+
     return run_success
 
 #allow input of config file
@@ -687,25 +695,28 @@ if not args.config is None:
     if os.path.exists("./Temp_Files/"):
         shutil.rmtree('./Temp_Files')
     os.makedirs("./Temp_Files/")
-
-    temp_f = create_temps(conf_file)
+    load_finestructure = False
+    temp_f = create_temps(conf_file, load_finestructure=load_finestructure)
     band_file = temp_f[0]
     cube_file = temp_f[1]
-    
+    load_finestructure = temp_f[2]
+
     #import and use variables from config_file
     sys.path.append("./Temp_Files/")
     from conf_Py import *
 
 
-run_success = create_database(conf=config_prov)
+run_success = create_database(conf=config_prov,
+                              load_finestructure=load_finestructure
+                              )
 
 #remove the temporary folder after the run is finished
 if config_prov:
     shutil.rmtree('./Temp_Files')
-    
+
 if all(run_success):
     print("[INFO]\t Run finished succesfully")
-    
+
 else:
     print("[WARNING]\t Run Terminated with potential critical error!")
 

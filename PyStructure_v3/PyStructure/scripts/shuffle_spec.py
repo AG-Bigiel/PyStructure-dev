@@ -191,10 +191,17 @@ def shuffle(spec,
         # Recenter the current spectrum (this may be trivial for regridding)
         this_vaxis = vaxis - this_zero
         
-        #check that both vaxis are increasing or decreasing. If one delta v increasing and other decressing, we flip the input spectrum and vaxis 
-        if orig_deltav/new_deltav<0:
-            this_vaxis = np.flip(this_vaxis)
-            this_spec = np.flip(this_spec)
+        # Check that both vaxis are increasing.
+        # If one delta v is decressing, we flip the vaxis (and input spectrum)
+        if orig_deltav<0:
+            if (this_vaxis[1] - this_vaxis[0])<0:
+                # this_vaxis and this_spec are created in the for-loop and therefore flipped in each iteration
+                this_vaxis = np.flip(this_vaxis)
+                this_spec = np.flip(this_spec)
+        if new_deltav<0:
+            if (new_vaxis[1] - new_vaxis[0])<0:
+                # this should only happen once per shuffle, as new_vaxis is defined before the for-loop
+                new_vaxis = np.flip(new_vaxis)
             
         # Check overlap of the recentered spectrum
         max_this_vaxis = max(this_vaxis)
@@ -204,7 +211,8 @@ def shuffle(spec,
         new_spec = np.zeros(new_nchan)*missing
 
         # Find overlap
-        channel_mapping = np.interp(new_vaxis, this_vaxis,orig_chan)
+        # all 3 arrays must be monotonically increasing, otherwise no overlap will be detected
+        channel_mapping = np.interp(new_vaxis, this_vaxis, orig_chan)
 
 
         overlap = np.where(np.logical_and(channel_mapping > 0.0, \
@@ -233,6 +241,9 @@ def shuffle(spec,
         # Save the result in an output array.
         #----------------------------------------------------------------------
 
+        # Flip the new spectrum back if necessary
+        if new_deltav<0:
+            new_spec= np.flip(new_spec)
 
         if len(dim_spec) == 3:
             output[xx,yy,:] = new_spec

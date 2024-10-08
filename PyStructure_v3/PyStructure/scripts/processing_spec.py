@@ -6,6 +6,7 @@ from mom_computer import get_mom_maps
 
 from structure_addition import *
 from shuffle_spec import *
+from shift_mask import *
 
 
 
@@ -17,9 +18,10 @@ def construct_mask(ref_line, this_data, SN_processing):
     n_pts = np.shape(ref_line_data)[0]
     n_chan = np.shape(ref_line_data)[1]
 
-    line_vaxis = this_data['SPEC_VCHAN0']+(np.arange(n_chan)-(this_data['SPEC_CRPIX'])-1)*this_data['SPEC_DELTAV']
+    line_vaxis = this_data['SPEC_VCHAN0']+(np.arange(n_chan)-(this_data['SPEC_CRPIX']-1))*this_data['SPEC_DELTAV']
 
     line_vaxis = line_vaxis/1000 #to km/s
+    
     #Estimate rms
     rms = median_absolute_deviation(ref_line_data, axis = None, ignore_nan = True)
     rms = median_absolute_deviation(ref_line_data[np.where(ref_line_data<3*rms)], ignore_nan = True)
@@ -64,7 +66,8 @@ def process_spectra(sources_data,
                     ref_line_method,
                     SN_processing,
                     mom_calc = [3, "fwhm"],
-                    just_source = None
+                    just_source = None,
+                    load_finestructure = False
                     ):
     """
     :param sources_data: Pandas DataFrame which is the geometry.txt file
@@ -148,6 +151,28 @@ def process_spectra(sources_data,
         #store the mask in the PyStructure
         this_data["SPEC_MASK"]= mask
 
+        # create mask for lines with resolved finestructure
+        if load_finestructure==True:
+            path_finestructure = './Temp_Files/finestructure_list_temp.txt'
+            file_finestructure = pd.read_csv(path_finestructure, sep=', ', usecols=[2],
+                            header=0, index_col=False, engine='python', comment='#', skipfooter=0)
+            num_finelines = pd.DataFrame.to_numpy(file_finestructure) # column with the number of finesturcture lines for each line
+            if len(num_finelines[:,0])>0:
+                max_line_number = np.nanmax(num_finelines)
+                file_finestructure = pd.read_csv(path_finestructure, sep=', ', usecols=range(max_line_number+4),
+                                header=0, index_col=False, engine='python', comment='#')
+                fine = pd.DataFrame.to_numpy(file_finestructure)
+                fine_names = fine[:,0]
+                fine_dict= {}
+                for number in range(len(num_finelines[:,0])):
+                    fine_dict[fine[number, 0]] = {}
+                    fine_dict[fine[number, 0]]['name'] = fine[number, 1]
+                    fine_dict[fine[number, 0]]['num'] = fine[number, 2]
+                    fine_dict[fine[number, 0]]['freq'] = fine[number, 3:]
+                    doppler(line=fine[number, 0], dict=fine_dict)
+                fine_dict['mask'] = {}
+                fine_dict['prior_mask'] = np.copy(mask)
+
 
         #-------------------------------------------------------------------
         # Apply the CO-based mask to the EMPIRE lines and shuffle them
@@ -189,14 +214,40 @@ def process_spectra(sources_data,
             this_vaxis = (this_v0 + (np.arange(n_chan)-(this_crpix-1))*this_deltav)/1000 #to km/s
             this_data["SPEC_VAXIS"] = this_vaxis
 
-            shuffled_mask = shuffle(spec = mask, \
-                                    vaxis = ref_line_vaxis,\
-                                    zero = 0.0,\
-                                    new_vaxis = this_vaxis, \
-                                    interp = 0)
+            if load_finestructure == True:
+                if len(num_finelines[:,0])>0:
+                    if line_name in fine_names:
+                        fine_dict['mask'][line_name] = np.zeros_like(mask)
+                        fine_dict['delta_v'] = this_vaxis[0]-this_vaxis[1]
+                        diff = np.round(fine_dict[line_name]['doppler']/fine_dict['delta_v']).astype(int)
+                        this_data['SPEC_MASK_FINE_'+line_name] = mask_shift(fine_dict['prior_mask'], diff)
+                        # use the finestructure mask for the line instead of the prior mask 
+                        shuffled_mask = shuffle(spec = this_data['SPEC_MASK_FINE_'+line_name], \
+                                                vaxis = ref_line_vaxis,\
+                                                zero = 0.0,\
+                                                new_vaxis = this_vaxis, \
+                                                interp = 0)
+                    else:
+                        shuffled_mask = shuffle(spec = mask, \
+                                                vaxis = ref_line_vaxis,\
+                                                zero = 0.0,\
+                                                new_vaxis = this_vaxis, \
+                                                interp = 0)
+                else:
+                    shuffled_mask = shuffle(spec = mask, \
+                                            vaxis = ref_line_vaxis,\
+                                            zero = 0.0,\
+                                            new_vaxis = this_vaxis, \
+                                            interp = 0)
+            else:
+                shuffled_mask = shuffle(spec = mask, \
+                                        vaxis = ref_line_vaxis,\
+                                        zero = 0.0,\
+                                        new_vaxis = this_vaxis, \
+                                        interp = 0)
                         
             #compute moment_maps
-            mom_maps = get_mom_maps(this_spec, shuffled_mask,this_vaxis, mom_calc)
+            mom_maps = get_mom_maps(this_spec, shuffled_mask, this_vaxis, mom_calc)
 
             # Save in structure
             if lines_data["band_ext"].isnull()[jj]:
